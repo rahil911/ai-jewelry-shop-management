@@ -1,0 +1,83 @@
+version: '3.8'
+
+services:
+  # Database
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: jewelry_shop
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: SecurePassword123!
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+
+  # User Management Service
+  user-management:
+    image: jewelryshopacr01280.azurecr.io/user-management:latest
+    environment:
+      - NODE_ENV=production
+      - PORT=3001
+      - DATABASE_URL=postgresql://admin:SecurePassword123!@postgres:5432/jewelry_shop
+      - REDIS_URL=redis://redis:6379
+      - JWT_SECRET=your-super-secret-jwt-key-here
+    ports:
+      - "3001:3001"
+    depends_on:
+      - postgres
+      - redis
+    restart: unless-stopped
+
+  # Simple Node.js services for pricing and inventory
+  pricing-service:
+    image: node:18-alpine
+    working_dir: /app
+    environment:
+      - NODE_ENV=production
+      - PORT=3003
+    ports:
+      - "3003:3003"
+    volumes:
+      - ./pricing-service.js:/app/index.js
+      - ./package-simple.json:/app/package.json
+    command: sh -c "npm install --omit=dev && node index.js"
+    restart: unless-stopped
+
+  inventory-management:
+    image: node:18-alpine
+    working_dir: /app
+    environment:
+      - NODE_ENV=production
+      - PORT=3002
+    ports:
+      - "3002:3002"
+    volumes:
+      - ./inventory-service.js:/app/index.js
+      - ./package-simple.json:/app/package.json
+    command: sh -c "npm install --omit=dev && node index.js"
+    restart: unless-stopped
+
+  # Nginx Reverse Proxy
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
+    depends_on:
+      - user-management
+      - pricing-service
+      - inventory-management
+    restart: unless-stopped
+
+volumes:
+  postgres_data:

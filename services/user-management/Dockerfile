@@ -9,10 +9,10 @@ RUN apk add --no-cache curl
 COPY package*.json ./
 
 # Install dependencies
-RUN npm ci --only=production
+RUN npm install --omit=dev
 
 # Copy built shared library from local build
-COPY ../../shared/dist ./node_modules/@jewelry-shop/shared/dist/
+COPY shared-dist ./node_modules/@jewelry-shop/shared/dist/
 
 # Copy source code
 COPY src ./src
