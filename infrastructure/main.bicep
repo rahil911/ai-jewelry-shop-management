@@ -1,5 +1,3 @@
-@description('Main Bicep template for Jewelry Shop Management System')
-
 // Parameters
 @description('Name of the virtual machine')
 param vmName string = 'jewelry-backend-vm'
@@ -158,8 +156,8 @@ resource vm 'Microsoft.Compute/virtualMachines@2023-03-01' = {
     osProfile: {
       computerName: vmName
       adminUsername: adminUsername
-      disablePasswordAuthentication: true
       linuxConfiguration: {
+        disablePasswordAuthentication: true
         ssh: {
           publicKeys: [
             {

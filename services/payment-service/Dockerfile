@@ -12,7 +12,7 @@ COPY package*.json ./
 RUN npm ci --only=production
 
 # Copy built shared library
-COPY --from=shared /app/dist ./node_modules/@jewelry-shop/shared/dist/
+COPY ../../shared/dist ./node_modules/@jewelry-shop/shared/dist/
 
 # Copy source code
 COPY src ./src
