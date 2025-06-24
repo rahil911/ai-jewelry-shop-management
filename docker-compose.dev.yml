@@ -1,0 +1,331 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: jewelry-postgres
+    environment:
+      POSTGRES_DB: jewelry_shop_db
+      POSTGRES_USER: jeweler
+      POSTGRES_PASSWORD: jeweler123
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - jewelry-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U jeweler -d jewelry_shop_db"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  redis:
+    image: redis:7-alpine
+    container_name: jewelry-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - jewelry-network
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  user-management:
+    build:
+      context: ./services/user-management
+      dockerfile: Dockerfile.dev
+    container_name: user-management-service
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=development
+      - PORT=3001
+      - DATABASE_URL=postgresql://jeweler:jeweler123@postgres:5432/jewelry_shop_db
+      - REDIS_URL=redis://redis:6379
+      - JWT_SECRET=dev-jwt-secret-change-in-production
+      - JWT_EXPIRES_IN=24h
+      - BCRYPT_ROUNDS=10
+    volumes:
+      - ./services/user-management:/app
+      - /app/node_modules
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - jewelry-network
+    restart: unless-stopped
+
+  inventory-management:
+    build:
+      context: ./services/inventory-management
+      dockerfile: Dockerfile.dev
+    container_name: inventory-management-service
+    ports:
+      - "3002:3002"
+    environment:
+      - NODE_ENV=development
+      - PORT=3002
+      - DATABASE_URL=postgresql://jeweler:jeweler123@postgres:5432/jewelry_shop_db
+      - REDIS_URL=redis://redis:6379
+      - IMAGE_UPLOAD_PATH=/app/uploads
+      - BARCODE_API_KEY=dev-barcode-api-key
+    volumes:
+      - ./services/inventory-management:/app
+      - /app/node_modules
+      - inventory_uploads:/app/uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - jewelry-network
+    restart: unless-stopped
+
+  pricing-service:
+    build:
+      context: ./services/pricing-service
+      dockerfile: Dockerfile.dev
+    container_name: pricing-service
+    ports:
+      - "3003:3003"
+    environment:
+      - NODE_ENV=development
+      - PORT=3003
+      - DATABASE_URL=postgresql://jeweler:jeweler123@postgres:5432/jewelry_shop_db
+      - REDIS_URL=redis://redis:6379
+      - GOLD_API_KEY=dev-gold-api-key-replace-with-real
+      - METAL_PRICE_API_KEY=dev-metal-price-api-key
+      - RATE_UPDATE_INTERVAL=300000
+    volumes:
+      - ./services/pricing-service:/app
+      - /app/node_modules
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - jewelry-network
+    restart: unless-stopped
+
+  order-management:
+    build:
+      context: ./services/order-management
+      dockerfile: Dockerfile.dev
+    container_name: order-management-service
+    ports:
+      - "3004:3004"
+    environment:
+      - NODE_ENV=development
+      - PORT=3004
+      - DATABASE_URL=postgresql://jeweler:jeweler123@postgres:5432/jewelry_shop_db
+      - REDIS_URL=redis://redis:6379
+      - INVENTORY_SERVICE_URL=http://inventory-management:3002
+      - PRICING_SERVICE_URL=http://pricing-service:3003
+      - PAYMENT_SERVICE_URL=http://payment-service:3006
+    volumes:
+      - ./services/order-management:/app
+      - /app/node_modules
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - jewelry-network
+    restart: unless-stopped
+
+  image-management:
+    build:
+      context: ./services/image-management
+      dockerfile: Dockerfile.dev
+    container_name: image-management-service
+    ports:
+      - "3005:3005"
+    environment:
+      - NODE_ENV=development
+      - PORT=3005
+      - DATABASE_URL=postgresql://jeweler:jeweler123@postgres:5432/jewelry_shop_db
+      - REDIS_URL=redis://redis:6379
+      - AZURE_STORAGE_CONNECTION_STRING=dev-azure-storage-connection
+      - CDN_BASE_URL=https://dev-jewelry-cdn.azureedge.net
+      - MAX_FILE_SIZE=10485760
+      - ALLOWED_FORMATS=jpg,jpeg,png,webp
+    volumes:
+      - ./services/image-management:/app
+      - /app/node_modules
+      - image_uploads:/app/temp-uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - jewelry-network
+    restart: unless-stopped
+
+  payment-service:
+    build:
+      context: ./services/payment-service
+      dockerfile: Dockerfile.dev
+    container_name: payment-service
+    ports:
+      - "3006:3006"
+    environment:
+      - NODE_ENV=development
+      - PORT=3006
+      - DATABASE_URL=postgresql://jeweler:jeweler123@postgres:5432/jewelry_shop_db
+      - REDIS_URL=redis://redis:6379
+      - RAZORPAY_KEY_ID=dev-razorpay-key-id
+      - RAZORPAY_KEY_SECRET=dev-razorpay-key-secret
+      - STRIPE_SECRET_KEY=sk_test_dev_stripe_key
+      - GST_RATE=0.03
+      - INVOICE_TEMPLATE_PATH=/app/templates
+    volumes:
+      - ./services/payment-service:/app
+      - /app/node_modules
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - jewelry-network
+    restart: unless-stopped
+
+  llm-service:
+    build:
+      context: ./services/llm-service
+      dockerfile: Dockerfile.dev
+    container_name: llm-service
+    ports:
+      - "3007:3007"
+    environment:
+      - NODE_ENV=development
+      - PORT=3007
+      - DATABASE_URL=postgresql://jeweler:jeweler123@postgres:5432/jewelry_shop_db
+      - REDIS_URL=redis://redis:6379
+      - OPENAI_API_KEY=sk-dev-openai-api-key-replace-with-real
+      - GOOGLE_GEMINI_API_KEY=dev-gemini-api-key-replace-with-real
+      - AZURE_SPEECH_KEY=dev-azure-speech-key
+      - AZURE_SPEECH_REGION=eastus
+      - DEFAULT_AI_MODEL=openai-gpt-4
+      - SUPPORTED_LANGUAGES=en,hi,kn
+      - MAX_TOKENS=1000
+      - TEMPERATURE=0.7
+    volumes:
+      - ./services/llm-service:/app
+      - /app/node_modules
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - jewelry-network
+    restart: unless-stopped
+
+  notification-service:
+    build:
+      context: ./services/notification-service
+      dockerfile: Dockerfile.dev
+    container_name: notification-service
+    ports:
+      - "3008:3008"
+    environment:
+      - NODE_ENV=development
+      - PORT=3008
+      - DATABASE_URL=postgresql://jeweler:jeweler123@postgres:5432/jewelry_shop_db
+      - REDIS_URL=redis://redis:6379
+      - SENDGRID_API_KEY=dev-sendgrid-api-key
+      - TWILIO_ACCOUNT_SID=dev-twilio-account-sid
+      - TWILIO_AUTH_TOKEN=dev-twilio-auth-token
+      - WHATSAPP_API_KEY=dev-whatsapp-api-key
+      - EMAIL_FROM=noreply@jewelryshop.com
+    volumes:
+      - ./services/notification-service:/app
+      - /app/node_modules
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - jewelry-network
+    restart: unless-stopped
+
+  analytics-service:
+    build:
+      context: ./services/analytics-service
+      dockerfile: Dockerfile.dev
+    container_name: analytics-service
+    ports:
+      - "3009:3009"
+    environment:
+      - NODE_ENV=development
+      - PORT=3009
+      - DATABASE_URL=postgresql://jeweler:jeweler123@postgres:5432/jewelry_shop_db
+      - REDIS_URL=redis://redis:6379
+      - ANALYTICS_CACHE_TTL=3600
+      - REPORT_GENERATION_QUEUE=analytics-reports
+    volumes:
+      - ./services/analytics-service:/app
+      - /app/node_modules
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - jewelry-network
+    restart: unless-stopped
+
+  nginx:
+    image: nginx:alpine
+    container_name: jewelry-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./docker/nginx/certs:/etc/nginx/certs
+    depends_on:
+      - user-management
+      - inventory-management
+      - pricing-service
+      - order-management
+      - image-management
+      - payment-service
+      - llm-service
+      - notification-service
+      - analytics-service
+    networks:
+      - jewelry-network
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  inventory_uploads:
+    driver: local
+  image_uploads:
+    driver: local
+
+networks:
+  jewelry-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16

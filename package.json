@@ -1,0 +1,51 @@
+{
+  "name": "jewelry-shop-management-system",
+  "version": "1.0.0",
+  "description": "AI-Powered Jewelry Shop Management System with E-commerce & ERP Platform",
+  "private": true,
+  "workspaces": [
+    "services/*",
+    "frontend",
+    "shared"
+  ],
+  "scripts": {
+    "dev": "concurrently \"npm run dev:services\" \"npm run dev:frontend\"",
+    "dev:services": "concurrently \"npm run dev -w user-management\" \"npm run dev -w inventory-management\" \"npm run dev -w pricing-service\" \"npm run dev -w order-management\" \"npm run dev -w image-management\" \"npm run dev -w payment-service\" \"npm run dev -w llm-service\" \"npm run dev -w notification-service\" \"npm run dev -w analytics-service\"",
+    "dev:frontend": "npm run dev -w frontend",
+    "build": "npm run build --workspaces",
+    "test": "npm run test --workspaces",
+    "lint": "npm run lint --workspaces",
+    "typecheck": "npm run typecheck --workspaces",
+    "docker:dev": "docker-compose -f docker-compose.dev.yml up -d",
+    "docker:down": "docker-compose -f docker-compose.dev.yml down",
+    "docker:logs": "docker-compose -f docker-compose.dev.yml logs -f",
+    "setup": "npm install && npm run docker:dev",
+    "db:migrate": "npm run migrate -w shared",
+    "db:seed": "npm run seed -w shared",
+    "gold:rates": "node scripts/fetch-gold-rates.js",
+    "ai:test": "node scripts/test-ai-models.js"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2",
+    "@types/node": "^20.10.0",
+    "typescript": "^5.3.0",
+    "nodemon": "^3.0.2",
+    "ts-node": "^10.9.1"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  },
+  "keywords": [
+    "jewelry",
+    "erp",
+    "ecommerce",
+    "ai",
+    "multilingual",
+    "gold-rates",
+    "microservices",
+    "azure"
+  ],
+  "author": "Jewelry Shop Management Team",
+  "license": "Private"
+}

@@ -1,0 +1,27 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mkdir:*)",
+      "Bash(rm:*)",
+      "Bash(for service in user-management inventory-management pricing-service order-management image-management payment-service llm-service notification-service analytics-service)",
+      "Bash(do cp shared/tsconfig.json services/$service/tsconfig.json)",
+      "Bash(done)",
+      "Bash(for service in shared user-management inventory-management pricing-service order-management image-management payment-service llm-service notification-service analytics-service)",
+      "Bash(do mkdir -p $service/src/{controllers,services,models,middleware,utils,types,config})",
+      "Bash(do mkdir -p services/$service/src/{controllers,services,models,middleware,utils,types,config})",
+      "Bash(for service in inventory-management pricing-service order-management image-management payment-service llm-service notification-service analytics-service)",
+      "Bash(do cp services/user-management/Dockerfile.dev services/$service/Dockerfile.dev)",
+      "Bash(sed:*)",
+      "Bash(chmod:*)",
+      "Bash(find:*)",
+      "Bash(cp:*)",
+      "Bash(npm install)",
+      "Bash(docker:*)",
+      "Bash(docker-compose:*)",
+      "Bash(node:*)",
+      "Bash(npm run typecheck:*)",
+      "Bash(npm run docker:build:*)"
+    ],
+    "deny": []
+  }
+}
