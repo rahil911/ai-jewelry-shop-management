@@ -25,7 +25,7 @@ export class MakingChargesController {
       
     } catch (error) {
       logger.error('Get making charges error:', error);
-      res.status(500).json(createApiResponse(false, null, null, 'Failed to retrieve making charges'));
+      res.status(500).json(createApiResponse(false, undefined, null, 'Failed to retrieve making charges'));
     }
   }
   
@@ -45,7 +45,7 @@ export class MakingChargesController {
       
     } catch (error) {
       logger.error('Get making charges by category error:', error);
-      res.status(500).json(createApiResponse(false, null, null, 'Failed to retrieve making charges'));
+      res.status(500).json(createApiResponse(false, undefined, null, 'Failed to retrieve making charges'));
     }
   }
   
@@ -65,7 +65,7 @@ export class MakingChargesController {
       
     } catch (error) {
       logger.error('Get making charges by purity error:', error);
-      res.status(500).json(createApiResponse(false, null, null, 'Failed to retrieve making charges'));
+      res.status(500).json(createApiResponse(false, undefined, null, 'Failed to retrieve making charges'));
     }
   }
   
@@ -102,7 +102,7 @@ export class MakingChargesController {
       
     } catch (error) {
       logger.error('Create making charges config error:', error);
-      res.status(500).json(createApiResponse(false, null, null, 'Failed to create making charges configuration'));
+      res.status(500).json(createApiResponse(false, undefined, null, 'Failed to create making charges configuration'));
     }
   }
   
@@ -150,10 +150,10 @@ export class MakingChargesController {
       logger.error('Update making charges config error:', error);
       
       if (error instanceof ServiceError) {
-        return res.status(error.statusCode).json(createApiResponse(false, null, null, error.message));
+        return res.status(error.statusCode).json(createApiResponse(false, undefined, null, error.message));
       }
       
-      res.status(500).json(createApiResponse(false, null, null, 'Failed to update making charges configuration'));
+      res.status(500).json(createApiResponse(false, undefined, null, 'Failed to update making charges configuration'));
     }
   }
   
@@ -181,10 +181,10 @@ export class MakingChargesController {
       logger.error('Delete making charges config error:', error);
       
       if (error instanceof ServiceError) {
-        return res.status(error.statusCode).json(createApiResponse(false, null, null, error.message));
+        return res.status(error.statusCode).json(createApiResponse(false, undefined, null, error.message));
       }
       
-      res.status(500).json(createApiResponse(false, null, null, 'Failed to delete making charges configuration'));
+      res.status(500).json(createApiResponse(false, undefined, null, 'Failed to delete making charges configuration'));
     }
   }
 }

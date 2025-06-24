@@ -18,7 +18,7 @@ export const generateToken = (payload: Record<string, any>, expiresIn = '24h'): 
   if (!secret) {
     throw new Error('JWT_SECRET environment variable is required');
   }
-  return jwt.sign(payload, secret, { expiresIn });
+  return jwt.sign(payload, secret, { expiresIn } as jwt.SignOptions);
 };
 
 export const verifyToken = (token: string): Record<string, any> => {
@@ -190,21 +190,7 @@ export const sanitizeForLogs = (data: Record<string, any>): Record<string, any> 
   return sanitized;
 };
 
-// API utilities
-export const createApiResponse = <T>(
-  success: boolean,
-  data?: T,
-  message?: string,
-  error?: string
-) => {
-  return {
-    success,
-    data,
-    message,
-    error,
-    timestamp: new Date().toISOString()
-  };
-};
+// API utilities - exported from types/index.ts
 
 export const createPaginatedResponse = <T>(
   data: T[],

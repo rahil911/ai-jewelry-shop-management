@@ -14,7 +14,7 @@ export const authMiddleware = (req: AuthenticatedRequest, res: Response, next: N
     const authHeader = req.headers.authorization;
     
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return res.status(401).json(createApiResponse(false, null, null, 'Access token required'));
+      return res.status(401).json(createApiResponse(false, undefined, undefined, 'Access token required'));
     }
     
     const token = authHeader.substring(7); // Remove 'Bearer ' prefix
@@ -28,23 +28,23 @@ export const authMiddleware = (req: AuthenticatedRequest, res: Response, next: N
       next();
     } catch (tokenError) {
       logger.warn('Invalid token:', tokenError);
-      return res.status(401).json(createApiResponse(false, null, null, 'Invalid or expired token'));
+      return res.status(401).json(createApiResponse(false, undefined, undefined, 'Invalid or expired token'));
     }
     
   } catch (error) {
     logger.error('Auth middleware error:', error);
-    res.status(500).json(createApiResponse(false, null, null, 'Internal server error'));
+    res.status(500).json(createApiResponse(false, undefined, undefined, 'Internal server error'));
   }
 };
 
 export const authorize = (roles: string[]) => {
   return (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     if (!req.user) {
-      return res.status(401).json(createApiResponse(false, null, null, 'Authentication required'));
+      return res.status(401).json(createApiResponse(false, undefined, undefined, 'Authentication required'));
     }
     
     if (!roles.includes(req.user.role)) {
-      return res.status(403).json(createApiResponse(false, null, null, 'Insufficient permissions'));
+      return res.status(403).json(createApiResponse(false, undefined, undefined, 'Insufficient permissions'));
     }
     
     next();

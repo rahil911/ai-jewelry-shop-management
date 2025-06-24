@@ -19,10 +19,8 @@ export const validateRequest = (schema: Joi.ObjectSchema, property: 'body' | 'qu
 
       return res.status(400).json(createApiResponse(
         false, 
-        null, 
-        null, 
-        'Validation failed',
-        { errors: validationErrors }
+        undefined, 
+        'Validation failed'
       ));
     }
 

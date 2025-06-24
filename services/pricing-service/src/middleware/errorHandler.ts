@@ -15,28 +15,28 @@ export const errorHandler = (error: any, req: Request, res: Response, next: Next
 
   // Handle validation errors
   if (error.code === 'VALIDATION_ERROR') {
-    return res.status(400).json(createApiResponse(false, null, null, error.message));
+    return res.status(400).json(createApiResponse(false, undefined, null, error.message));
   }
 
   // Handle custom service errors
   if (error.statusCode) {
-    return res.status(error.statusCode).json(createApiResponse(false, null, null, error.message));
+    return res.status(error.statusCode).json(createApiResponse(false, undefined, null, error.message));
   }
 
   // Handle external API errors
   if (error.code === 'ECONNREFUSED' || error.code === 'ETIMEDOUT') {
-    return res.status(503).json(createApiResponse(false, null, null, 'External service unavailable'));
+    return res.status(503).json(createApiResponse(false, undefined, null, 'External service unavailable'));
   }
 
   // Handle database errors
   if (error.code === '23505') {
-    return res.status(409).json(createApiResponse(false, null, null, 'Resource already exists'));
+    return res.status(409).json(createApiResponse(false, undefined, null, 'Resource already exists'));
   }
 
   if (error.code === '23503') {
-    return res.status(400).json(createApiResponse(false, null, null, 'Invalid reference'));
+    return res.status(400).json(createApiResponse(false, undefined, null, 'Invalid reference'));
   }
 
   // Default error response
-  res.status(500).json(createApiResponse(false, null, null, 'Internal server error'));
+  res.status(500).json(createApiResponse(false, undefined, null, 'Internal server error'));
 };

@@ -19,7 +19,7 @@ export const errorHandler = (
 
   if (error instanceof ServiceError) {
     res.status(error.statusCode).json(
-      createApiResponse(false, null, null, error.message)
+      createApiResponse(false, undefined, null, error.message)
     );
     return;
   }
@@ -27,27 +27,27 @@ export const errorHandler = (
   // AI service specific errors
   if (error.message.includes('API key')) {
     res.status(401).json(
-      createApiResponse(false, null, null, 'AI service authentication failed')
+      createApiResponse(false, undefined, null, 'AI service authentication failed')
     );
     return;
   }
 
   if (error.message.includes('rate limit')) {
     res.status(429).json(
-      createApiResponse(false, null, null, 'AI service rate limit exceeded')
+      createApiResponse(false, undefined, null, 'AI service rate limit exceeded')
     );
     return;
   }
 
   if (error.message.includes('quota')) {
     res.status(403).json(
-      createApiResponse(false, null, null, 'AI service quota exceeded')
+      createApiResponse(false, undefined, null, 'AI service quota exceeded')
     );
     return;
   }
 
   // Default error response
   res.status(500).json(
-    createApiResponse(false, null, null, 'Internal server error')
+    createApiResponse(false, undefined, null, 'Internal server error')
   );
 };

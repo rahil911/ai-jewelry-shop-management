@@ -1,4 +1,13 @@
 import { Request, Response } from 'express';
+
+// Extend Request type to include user property
+declare global {
+  namespace Express {
+    interface Request {
+      user?: any;
+    }
+  }
+}
 import { Pool } from 'pg';
 import { RedisClientType } from 'redis';
 import { 
@@ -74,10 +83,10 @@ export class AuthController {
       logger.error('Registration error:', error);
       
       if (error instanceof ServiceError) {
-        return res.status(error.statusCode).json(createApiResponse(false, null, null, error.message));
+        return res.status(error.statusCode).json(createApiResponse(false, undefined, undefined, error.message));
       }
       
-      res.status(500).json(createApiResponse(false, null, null, 'Internal server error'));
+      res.status(500).json(createApiResponse(false, undefined, undefined, 'Internal server error'));
     }
   }
   
@@ -127,10 +136,10 @@ export class AuthController {
       logger.error('Login error:', error);
       
       if (error instanceof ServiceError) {
-        return res.status(error.statusCode).json(createApiResponse(false, null, null, error.message));
+        return res.status(error.statusCode).json(createApiResponse(false, undefined, undefined, error.message));
       }
       
-      res.status(500).json(createApiResponse(false, null, null, 'Internal server error'));
+      res.status(500).json(createApiResponse(false, undefined, undefined, 'Internal server error'));
     }
   }
   
@@ -149,11 +158,11 @@ export class AuthController {
         }
       }
       
-      res.json(createApiResponse(true, null, 'Logout successful'));
+      res.json(createApiResponse(true, undefined, 'Logout successful'));
       
     } catch (error) {
       logger.error('Logout error:', error);
-      res.status(500).json(createApiResponse(false, null, null, 'Internal server error'));
+      res.status(500).json(createApiResponse(false, undefined, undefined, 'Internal server error'));
     }
   }
   
@@ -205,10 +214,10 @@ export class AuthController {
       logger.error('Token refresh error:', error);
       
       if (error instanceof ServiceError) {
-        return res.status(error.statusCode).json(createApiResponse(false, null, null, error.message));
+        return res.status(error.statusCode).json(createApiResponse(false, undefined, undefined, error.message));
       }
       
-      res.status(500).json(createApiResponse(false, null, null, 'Internal server error'));
+      res.status(500).json(createApiResponse(false, undefined, undefined, 'Internal server error'));
     }
   }
   
@@ -232,10 +241,10 @@ export class AuthController {
       logger.error('Get user error:', error);
       
       if (error instanceof ServiceError) {
-        return res.status(error.statusCode).json(createApiResponse(false, null, null, error.message));
+        return res.status(error.statusCode).json(createApiResponse(false, undefined, undefined, error.message));
       }
       
-      res.status(500).json(createApiResponse(false, null, null, 'Internal server error'));
+      res.status(500).json(createApiResponse(false, undefined, undefined, 'Internal server error'));
     }
   }
   
@@ -274,10 +283,10 @@ export class AuthController {
       logger.error('Update profile error:', error);
       
       if (error instanceof ServiceError) {
-        return res.status(error.statusCode).json(createApiResponse(false, null, null, error.message));
+        return res.status(error.statusCode).json(createApiResponse(false, undefined, undefined, error.message));
       }
       
-      res.status(500).json(createApiResponse(false, null, null, 'Internal server error'));
+      res.status(500).json(createApiResponse(false, undefined, undefined, 'Internal server error'));
     }
   }
   
@@ -313,16 +322,16 @@ export class AuthController {
       
       logger.info(`Password changed for user: ${user.email}`);
       
-      res.json(createApiResponse(true, null, 'Password changed successfully'));
+      res.json(createApiResponse(true, undefined, 'Password changed successfully'));
       
     } catch (error) {
       logger.error('Change password error:', error);
       
       if (error instanceof ServiceError) {
-        return res.status(error.statusCode).json(createApiResponse(false, null, null, error.message));
+        return res.status(error.statusCode).json(createApiResponse(false, undefined, undefined, error.message));
       }
       
-      res.status(500).json(createApiResponse(false, null, null, 'Internal server error'));
+      res.status(500).json(createApiResponse(false, undefined, undefined, 'Internal server error'));
     }
   }
   
@@ -353,16 +362,16 @@ export class AuthController {
       
       logger.info(`OTP sent via ${type} to ${email || phone}`);
       
-      res.json(createApiResponse(true, null, 'OTP sent successfully'));
+      res.json(createApiResponse(true, undefined, 'OTP sent successfully'));
       
     } catch (error) {
       logger.error('Send OTP error:', error);
       
       if (error instanceof ServiceError) {
-        return res.status(error.statusCode).json(createApiResponse(false, null, null, error.message));
+        return res.status(error.statusCode).json(createApiResponse(false, undefined, undefined, error.message));
       }
       
-      res.status(500).json(createApiResponse(false, null, null, 'Internal server error'));
+      res.status(500).json(createApiResponse(false, undefined, undefined, 'Internal server error'));
     }
   }
   
@@ -392,26 +401,26 @@ export class AuthController {
       
       logger.info(`OTP verified successfully for ${email || phone}`);
       
-      res.json(createApiResponse(true, null, 'OTP verified successfully'));
+      res.json(createApiResponse(true, undefined, 'OTP verified successfully'));
       
     } catch (error) {
       logger.error('Verify OTP error:', error);
       
       if (error instanceof ServiceError) {
-        return res.status(error.statusCode).json(createApiResponse(false, null, null, error.message));
+        return res.status(error.statusCode).json(createApiResponse(false, undefined, undefined, error.message));
       }
       
-      res.status(500).json(createApiResponse(false, null, null, 'Internal server error'));
+      res.status(500).json(createApiResponse(false, undefined, undefined, 'Internal server error'));
     }
   }
   
   async forgotPassword(req: Request, res: Response) {
     // TODO: Implement forgot password functionality
-    res.status(501).json(createApiResponse(false, null, null, 'Not implemented yet'));
+    res.status(501).json(createApiResponse(false, undefined, undefined, 'Not implemented yet'));
   }
   
   async resetPassword(req: Request, res: Response) {
     // TODO: Implement reset password functionality
-    res.status(501).json(createApiResponse(false, null, null, 'Not implemented yet'));
+    res.status(501).json(createApiResponse(false, undefined, undefined, 'Not implemented yet'));
   }
 }

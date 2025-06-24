@@ -60,12 +60,12 @@ router.post('/', async (req: Request, res: Response) => {
     
     if (error instanceof ServiceError) {
       return res.status(error.statusCode).json(
-        createApiResponse(false, null, null, error.message)
+        createApiResponse(false, undefined, null, error.message)
       );
     }
     
     res.status(500).json(
-      createApiResponse(false, null, null, 'Failed to process chat')
+      createApiResponse(false, undefined, null, 'Failed to process chat')
     );
   }
 });
@@ -118,12 +118,12 @@ router.post('/conversation', async (req: Request, res: Response) => {
     
     if (error instanceof ServiceError) {
       return res.status(error.statusCode).json(
-        createApiResponse(false, null, null, error.message)
+        createApiResponse(false, undefined, null, error.message)
       );
     }
     
     res.status(500).json(
-      createApiResponse(false, null, null, 'Failed to process conversation')
+      createApiResponse(false, undefined, null, 'Failed to process conversation')
     );
   }
 });
@@ -173,7 +173,7 @@ router.get('/models', async (req: Request, res: Response) => {
   } catch (error) {
     logger.error('Models check error:', error);
     res.status(500).json(
-      createApiResponse(false, null, null, 'Failed to check models')
+      createApiResponse(false, undefined, null, 'Failed to check models')
     );
   }
 });

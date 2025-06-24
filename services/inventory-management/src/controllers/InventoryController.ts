@@ -126,7 +126,7 @@ export class InventoryController {
       
     } catch (error) {
       logger.error('Get all items error:', error);
-      res.status(500).json(createApiResponse(false, null, null, 'Failed to retrieve inventory items'));
+      res.status(500).json(createApiResponse(false, undefined, null, 'Failed to retrieve inventory items'));
     }
   }
   
@@ -182,10 +182,10 @@ export class InventoryController {
       logger.error('Get item by ID error:', error);
       
       if (error instanceof ServiceError) {
-        return res.status(error.statusCode).json(createApiResponse(false, null, null, error.message));
+        return res.status(error.statusCode).json(createApiResponse(false, undefined, null, error.message));
       }
       
-      res.status(500).json(createApiResponse(false, null, null, 'Failed to retrieve item'));
+      res.status(500).json(createApiResponse(false, undefined, null, 'Failed to retrieve item'));
     }
   }
   
@@ -276,14 +276,14 @@ export class InventoryController {
       logger.error('Create item error:', error);
       
       if (error instanceof ServiceError) {
-        return res.status(error.statusCode).json(createApiResponse(false, null, null, error.message));
+        return res.status(error.statusCode).json(createApiResponse(false, undefined, null, error.message));
       }
       
       if (error.code === '23505') { // Unique constraint violation
-        return res.status(409).json(createApiResponse(false, null, null, 'SKU or barcode already exists'));
+        return res.status(409).json(createApiResponse(false, undefined, null, 'SKU or barcode already exists'));
       }
       
-      res.status(500).json(createApiResponse(false, null, null, 'Failed to create item'));
+      res.status(500).json(createApiResponse(false, undefined, null, 'Failed to create item'));
     }
   }
   
@@ -335,10 +335,10 @@ export class InventoryController {
       logger.error('Update item error:', error);
       
       if (error instanceof ServiceError) {
-        return res.status(error.statusCode).json(createApiResponse(false, null, null, error.message));
+        return res.status(error.statusCode).json(createApiResponse(false, undefined, null, error.message));
       }
       
-      res.status(500).json(createApiResponse(false, null, null, 'Failed to update item'));
+      res.status(500).json(createApiResponse(false, undefined, null, 'Failed to update item'));
     }
   }
   
@@ -380,10 +380,10 @@ export class InventoryController {
       logger.error('Delete item error:', error);
       
       if (error instanceof ServiceError) {
-        return res.status(error.statusCode).json(createApiResponse(false, null, null, error.message));
+        return res.status(error.statusCode).json(createApiResponse(false, undefined, null, error.message));
       }
       
-      res.status(500).json(createApiResponse(false, null, null, 'Failed to delete item'));
+      res.status(500).json(createApiResponse(false, undefined, null, 'Failed to delete item'));
     }
   }
   
@@ -450,10 +450,10 @@ export class InventoryController {
       logger.error('Update stock error:', error);
       
       if (error instanceof ServiceError) {
-        return res.status(error.statusCode).json(createApiResponse(false, null, null, error.message));
+        return res.status(error.statusCode).json(createApiResponse(false, undefined, null, error.message));
       }
       
-      res.status(500).json(createApiResponse(false, null, null, 'Failed to update stock'));
+      res.status(500).json(createApiResponse(false, undefined, null, 'Failed to update stock'));
     }
   }
   
@@ -496,7 +496,7 @@ export class InventoryController {
       
     } catch (error) {
       logger.error('Get inventory valuation error:', error);
-      res.status(500).json(createApiResponse(false, null, null, 'Failed to get inventory valuation'));
+      res.status(500).json(createApiResponse(false, undefined, null, 'Failed to get inventory valuation'));
     }
   }
   
@@ -522,7 +522,7 @@ export class InventoryController {
       
     } catch (error) {
       logger.error('Get low stock items error:', error);
-      res.status(500).json(createApiResponse(false, null, null, 'Failed to get low stock items'));
+      res.status(500).json(createApiResponse(false, undefined, null, 'Failed to get low stock items'));
     }
   }
 }

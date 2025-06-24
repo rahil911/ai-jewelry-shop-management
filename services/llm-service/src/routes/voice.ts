@@ -16,12 +16,12 @@ router.post('/process', async (req: Request, res: Response) => {
       if (err instanceof multer.MulterError) {
         if (err.code === 'LIMIT_FILE_SIZE') {
           return res.status(413).json(
-            createApiResponse(false, null, null, 'Audio file too large (max 25MB)')
+            createApiResponse(false, undefined, null, 'Audio file too large (max 25MB)')
           );
         }
       }
       return res.status(400).json(
-        createApiResponse(false, null, null, 'Audio upload error')
+        createApiResponse(false, undefined, null, 'Audio upload error')
       );
     }
     
@@ -83,12 +83,12 @@ router.post('/process', async (req: Request, res: Response) => {
       
       if (error instanceof ServiceError) {
         return res.status(error.statusCode).json(
-          createApiResponse(false, null, null, error.message)
+          createApiResponse(false, undefined, null, error.message)
         );
       }
       
       res.status(500).json(
-        createApiResponse(false, null, null, 'Failed to process voice')
+        createApiResponse(false, undefined, null, 'Failed to process voice')
       );
     }
   });
@@ -104,12 +104,12 @@ router.post('/transcribe', async (req: Request, res: Response) => {
       if (err instanceof multer.MulterError) {
         if (err.code === 'LIMIT_FILE_SIZE') {
           return res.status(413).json(
-            createApiResponse(false, null, null, 'Audio file too large (max 25MB)')
+            createApiResponse(false, undefined, null, 'Audio file too large (max 25MB)')
           );
         }
       }
       return res.status(400).json(
-        createApiResponse(false, null, null, 'Audio upload error')
+        createApiResponse(false, undefined, null, 'Audio upload error')
       );
     }
     
@@ -164,12 +164,12 @@ router.post('/transcribe', async (req: Request, res: Response) => {
       
       if (error instanceof ServiceError) {
         return res.status(error.statusCode).json(
-          createApiResponse(false, null, null, error.message)
+          createApiResponse(false, undefined, null, error.message)
         );
       }
       
       res.status(500).json(
-        createApiResponse(false, null, null, 'Failed to transcribe audio')
+        createApiResponse(false, undefined, null, 'Failed to transcribe audio')
       );
     }
   });

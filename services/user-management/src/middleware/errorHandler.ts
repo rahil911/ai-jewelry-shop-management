@@ -15,27 +15,27 @@ export const errorHandler = (error: any, req: Request, res: Response, next: Next
 
   // Handle validation errors
   if (error.code === 'VALIDATION_ERROR') {
-    return res.status(400).json(createApiResponse(false, null, null, error.message));
+    return res.status(400).json(createApiResponse(false, undefined, undefined, error.message));
   }
 
   // Handle custom service errors
   if (error.statusCode) {
-    return res.status(error.statusCode).json(createApiResponse(false, null, null, error.message));
+    return res.status(error.statusCode).json(createApiResponse(false, undefined, undefined, error.message));
   }
 
   // Handle database errors
   if (error.code === '23505') { // Unique constraint violation
-    return res.status(409).json(createApiResponse(false, null, null, 'Resource already exists'));
+    return res.status(409).json(createApiResponse(false, undefined, undefined, 'Resource already exists'));
   }
 
   if (error.code === '23503') { // Foreign key constraint violation
-    return res.status(400).json(createApiResponse(false, null, null, 'Invalid reference'));
+    return res.status(400).json(createApiResponse(false, undefined, undefined, 'Invalid reference'));
   }
 
   if (error.code === 'ECONNREFUSED') {
-    return res.status(503).json(createApiResponse(false, null, null, 'Service temporarily unavailable'));
+    return res.status(503).json(createApiResponse(false, undefined, undefined, 'Service temporarily unavailable'));
   }
 
   // Default error response
-  res.status(500).json(createApiResponse(false, null, null, 'Internal server error'));
+  res.status(500).json(createApiResponse(false, undefined, undefined, 'Internal server error'));
 };

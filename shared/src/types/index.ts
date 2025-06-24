@@ -1,357 +1,282 @@
-// Core domain types for Jewelry Shop Management System
-
+// User and Authentication Types
 export interface User {
-  id: string;
+  id: number;
   email: string;
+  first_name: string;
+  last_name: string;
+  role: string;
   phone?: string;
-  firstName: string;
-  lastName: string;
-  role: UserRole;
-  preferredLanguage: Language;
   address?: string;
-  isActive: boolean;
-  emailVerified: boolean;
-  phoneVerified: boolean;
-  lastLoginAt?: Date;
-  createdAt: Date;
-  updatedAt: Date;
+  is_active: boolean;
+  created_at: Date;
+  updated_at: Date;
 }
 
-export type UserRole = 'owner' | 'manager' | 'staff' | 'customer';
-export type Language = 'en' | 'hi' | 'kn';
+export interface LoginRequest {
+  email: string;
+  password: string;
+}
 
-export interface Customer {
-  userId: string;
-  loyaltyPoints: number;
-  totalPurchases: number;
-  communicationPreferences: {
-    email: boolean;
-    sms: boolean;
-    whatsapp: boolean;
+export interface RegisterRequest {
+  email: string;
+  password: string;
+  first_name: string;
+  last_name: string;
+  phone?: string;
+  address?: string;
+}
+
+export interface AuthResponse {
+  success: boolean;
+  data?: {
+    user: User;
+    token: string;
+    refresh_token?: string;
   };
-  birthDate?: Date;
-  anniversaryDate?: Date;
-  preferredCategories: string[];
-  createdAt: Date;
-  updatedAt: Date;
+  error?: string;
 }
 
-export interface MetalType {
-  id: string;
-  name: string;
-  symbol: string;
-  currentRate: number;
-  ratePer: 'gram' | 'tola' | 'ounce';
-  rateSource?: string;
-  lastUpdated: Date;
-  isActive: boolean;
-  createdAt: Date;
-}
-
-export interface Purity {
-  id: string;
-  metalTypeId: string;
-  purityName: string; // 22K, 18K, 14K, 925 Silver
-  purityPercentage: number;
-  makingChargeRate: number;
-  isActive: boolean;
-  createdAt: Date;
-}
-
-export interface Category {
-  id: string;
-  name: string;
-  nameHi?: string;
-  nameKn?: string;
-  description?: string;
-  parentId?: string;
-  makingChargePercentage: number;
-  imageUrl?: string;
-  sortOrder: number;
-  isActive: boolean;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-export interface JewelryItem {
-  id: string;
-  sku: string;
-  barcode?: string;
-  name: string;
-  nameHi?: string;
-  nameKn?: string;
-  description?: string;
-  categoryId: string;
-  metalTypeId: string;
-  purityId: string;
-  grossWeight: number;
-  netWeight: number;
-  stoneWeight: number;
-  makingCharges: number;
-  wastagePercentage: number;
-  stoneCharges: number;
-  otherCharges: number;
-  basePrice: number;
-  sellingPrice: number;
-  costPrice?: number;
-  mrp?: number;
-  stockQuantity: number;
-  minStockLevel: number;
-  size?: string;
-  color?: string;
-  occasion?: string;
-  gender?: 'male' | 'female' | 'unisex';
-  ageGroup?: 'kids' | 'adult' | 'senior';
-  style?: string;
-  images: string[];
-  certifications: string[];
-  tags: string[];
-  isCustomizable: boolean;
-  isAvailable: boolean;
-  isFeatured: boolean;
-  location?: string;
-  supplierId?: string;
-  purchaseDate?: Date;
-  warrantyMonths: number;
-  careInstructions?: string;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-export interface Order {
-  id: string;
-  orderNumber: string;
-  customerId?: string;
-  staffId?: string;
-  orderType: 'purchase' | 'repair' | 'customization' | 'exchange';
+// Order Management Types
+export interface JewelryOrder {
+  id: number;
+  order_number: string;
+  customer_id: number;
+  staff_id: number;
   status: OrderStatus;
-  priority: 'low' | 'normal' | 'high' | 'urgent';
+  order_type: OrderType;
   subtotal: number;
-  makingChargesTotal: number;
-  stoneChargesTotal: number;
-  wastageTotal: number;
-  discountAmount: number;
-  discountType?: 'percentage' | 'fixed' | 'loyalty';
-  cgstAmount: number;
-  sgstAmount: number;
-  igstAmount: number;
-  totalAmount: number;
-  advancePaid: number;
-  balanceAmount: number;
-  paymentStatus: 'pending' | 'partial' | 'paid' | 'refunded';
-  deliveryType: 'pickup' | 'home_delivery' | 'courier';
-  deliveryAddress?: string;
-  deliveryDate?: Date;
-  specialInstructions?: string;
-  estimatedCompletion?: Date;
-  completedAt?: Date;
-  createdAt: Date;
-  updatedAt: Date;
+  making_charges: number;
+  wastage_amount: number;
+  gst_amount: number;
+  total_amount: number;
+  special_instructions?: string;
+  estimated_completion?: Date;
+  created_at: Date;
+  updated_at: Date;
+  items?: OrderItem[];
+  customer?: any;
+  staff?: any;
 }
-
-export type OrderStatus = 
-  | 'pending'
-  | 'confirmed'
-  | 'processing'
-  | 'ready'
-  | 'completed'
-  | 'cancelled'
-  | 'refunded';
 
 export interface OrderItem {
-  id: string;
-  orderId: string;
-  jewelryItemId: string;
+  id: number;
+  order_id: number;
+  jewelry_item_id: number;
   quantity: number;
-  unitPrice: number;
-  makingCharges: number;
-  stoneCharges: number;
-  wastageCharges: number;
-  totalPrice: number;
-  goldRateAtTime?: number;
-  customizationDetails?: Record<string, any>;
-  specialInstructions?: string;
-  isGift: boolean;
-  giftMessage?: string;
-  createdAt: Date;
+  unit_price: number;
+  customization_details?: string;
+  total_price: number;
+  item?: any;
 }
 
+export interface CreateOrderRequest {
+  customer_id: number;
+  staff_id?: number;
+  order_type?: OrderType;
+  items: OrderItem[];
+  special_instructions?: string;
+  estimated_completion?: Date;
+}
+
+export interface UpdateOrderRequest {
+  special_instructions?: string;
+  estimated_completion?: Date;
+}
+
+export interface CustomizationRequest {
+  order_item_id: number;
+  customization_type: string;
+  details: string;
+  additional_cost?: number;
+}
+
+export interface OrderFilters {
+  status?: OrderStatus;
+  customer_id?: number;
+  staff_id?: number;
+  order_type?: OrderType;
+  date_from?: string;
+  date_to?: string;
+  search?: string;
+}
+
+export interface OrderStats {
+  total_orders: number;
+  pending_orders: number;
+  confirmed_orders: number;
+  in_progress_orders: number;
+  completed_orders: number;
+  cancelled_orders: number;
+  total_revenue: number;
+  average_order_value: number;
+}
+
+// Payment Types
 export interface Payment {
-  id: string;
-  orderId?: string;
-  repairId?: string;
-  paymentNumber: string;
-  paymentMethod: PaymentMethod;
+  id: number;
+  payment_id: string;
+  order_id: number;
   amount: number;
+  currency: string;
+  payment_method: PaymentMethod;
   status: PaymentStatus;
-  transactionId?: string;
-  paymentGateway?: string;
-  gatewayResponse?: Record<string, any>;
-  referenceNumber?: string;
-  processedAt?: Date;
-  refundedAt?: Date;
-  refundReason?: string;
-  createdAt: Date;
+  gateway_order_id?: string;
+  gateway_transaction_id?: string;
+  gateway_response?: any;
+  created_by: number;
+  created_at: Date;
+  updated_at: Date;
+  order?: any;
+  customer?: any;
 }
 
-export type PaymentMethod = 
-  | 'cash'
-  | 'card'
-  | 'upi'
-  | 'net_banking'
-  | 'cheque'
-  | 'gold_exchange'
-  | 'emi';
-
-export type PaymentStatus = 
-  | 'pending'
-  | 'processing'
-  | 'completed'
-  | 'failed'
-  | 'refunded'
-  | 'cancelled';
-
-export interface AIConversation {
-  id: string;
-  userId: string;
-  sessionId: string;
-  language: Language;
-  modelUsed: string;
-  inputType: 'text' | 'voice';
-  userInput: string;
-  aiResponse: string;
-  contextData?: Record<string, any>;
-  processingTimeMs: number;
-  tokensUsed: number;
-  costIncurred: number;
-  createdAt: Date;
+export interface CreatePaymentRequest {
+  order_id: number;
+  amount: number;
+  currency?: string;
+  payment_method: PaymentMethod;
+  created_by?: number;
 }
 
-export interface GoldRate {
-  id: string;
-  metalTypeId: string;
-  ratePerGram: number;
-  ratePerTola?: number;
-  rateSource: string;
-  recordedAt: Date;
+export interface Refund {
+  id: number;
+  refund_id: string;
+  payment_id: string;
+  amount: number;
+  reason: string;
+  status: string;
+  gateway_refund_id?: string;
+  gateway_response?: any;
+  created_by: number;
+  created_at: Date;
+  updated_at: Date;
 }
 
-export interface MakingChargesConfig {
-  id: string;
-  categoryId?: string;
-  purityId?: string;
-  chargeType: 'percentage' | 'per_gram' | 'fixed';
-  rateValue: number;
-  minimumCharge: number;
-  maximumCharge?: number;
-  weightRangeMin: number;
-  weightRangeMax?: number;
-  locationId?: string;
-  effectiveFrom: Date;
-  effectiveTo?: Date;
-  isActive: boolean;
-  createdAt: Date;
+export interface PaymentStats {
+  total_payments: number;
+  pending_payments: number;
+  successful_payments: number;
+  failed_payments: number;
+  total_revenue: number;
+  average_payment_value: number;
+  payment_methods: {
+    razorpay: number;
+    stripe: number;
+    cash: number;
+  };
 }
 
-// API Response types
+// Invoice Types
+export interface Invoice {
+  id: number;
+  invoice_number: string;
+  order_id: number;
+  amount: number;
+  gst_amount: number;
+  total_amount: number;
+  invoice_date: Date;
+  due_date: Date;
+  status: string;
+  created_at: Date;
+  updated_at: Date;
+}
+
+// Image Management Types
+export interface JewelryImage {
+  id: number;
+  jewelry_item_id?: number;
+  image_url: string;
+  thumbnail_url?: string;
+  medium_url?: string;
+  filename: string;
+  file_size: number;
+  mime_type: string;
+  alt_text?: string;
+  category: string;
+  is_primary: boolean;
+  uploaded_by: number;
+  created_at: Date;
+  updated_at: Date;
+  jewelry_item?: any;
+}
+
+export interface ImageUploadRequest {
+  jewelry_item_id?: number;
+  category: string;
+  alt_text?: string;
+  is_primary: boolean;
+  uploaded_by: number;
+}
+
+// Enums
+export enum OrderStatus {
+  PENDING = 'pending',
+  CONFIRMED = 'confirmed',
+  IN_PROGRESS = 'in_progress',
+  COMPLETED = 'completed',
+  CANCELLED = 'cancelled',
+  DELIVERED = 'delivered'
+}
+
+export enum OrderType {
+  SALE = 'sale',
+  REPAIR = 'repair',
+  CUSTOM = 'custom',
+  EXCHANGE = 'exchange'
+}
+
+export enum PaymentMethod {
+  CASH = 'cash',
+  RAZORPAY = 'razorpay',
+  STRIPE = 'stripe',
+  BANK_TRANSFER = 'bank_transfer'
+}
+
+export enum PaymentStatus {
+  PENDING = 'pending',
+  SUCCESS = 'success',
+  FAILED = 'failed',
+  CANCELLED = 'cancelled',
+  REFUNDED = 'refunded'
+}
+
+// Response Types
 export interface ApiResponse<T = any> {
   success: boolean;
   data?: T;
   error?: string;
   message?: string;
-}
-
-export interface PaginatedResponse<T = any> {
-  data: T[];
-  pagination: {
+  timestamp?: string;
+  pagination?: {
     page: number;
     limit: number;
     total: number;
-    totalPages: number;
+    pages: number;
   };
 }
 
-// Service configuration types
-export interface DatabaseConfig {
-  host: string;
-  port: number;
-  database: string;
-  username: string;
-  password: string;
-  ssl?: boolean;
-}
-
-export interface RedisConfig {
-  host: string;
-  port: number;
-  password?: string;
-  db?: number;
-}
-
-export interface JWTConfig {
-  secret: string;
-  expiresIn: string;
-  refreshExpiresIn: string;
-}
-
-export interface AIModelConfig {
-  provider: 'openai' | 'gemini';
-  model: string;
-  apiKey: string;
-  temperature: number;
-  maxTokens: number;
-  timeout: number;
-}
-
-// Validation schemas and error types
+// Validation Types
 export interface ValidationError {
   field: string;
   message: string;
   code: string;
 }
 
-export interface ServiceError {
-  code: string;
-  message: string;
-  details?: any;
-  statusCode: number;
-}
-
-// Event types for microservices communication
-export interface ServiceEvent {
-  type: string;
-  payload: Record<string, any>;
-  timestamp: Date;
-  source: string;
-  correlationId: string;
-}
-
-export interface InventoryUpdateEvent extends ServiceEvent {
-  type: 'inventory.updated';
-  payload: {
-    itemId: string;
-    oldQuantity: number;
-    newQuantity: number;
-    reason: string;
+// Helper function to create API responses
+export const createApiResponse = <T>(
+  success: boolean,
+  data?: T | undefined,
+  message?: string | undefined,
+  error?: string | undefined
+): ApiResponse<T> => {
+  const response: ApiResponse<T> = {
+    success,
+    timestamp: new Date().toISOString()
   };
-}
-
-export interface OrderStatusEvent extends ServiceEvent {
-  type: 'order.status_changed';
-  payload: {
-    orderId: string;
-    oldStatus: OrderStatus;
-    newStatus: OrderStatus;
-    customerId: string;
-  };
-}
-
-export interface GoldRateUpdateEvent extends ServiceEvent {
-  type: 'gold_rate.updated';
-  payload: {
-    metalType: string;
-    oldRate: number;
-    newRate: number;
-    source: string;
-  };
-}
+  
+  if (data !== undefined) response.data = data;
+  if (message !== undefined) response.message = message;
+  if (error !== undefined) response.error = error;
+  
+  return response;
+};

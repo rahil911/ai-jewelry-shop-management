@@ -13,7 +13,7 @@ export class GoldRateController {
       
     } catch (error) {
       logger.error('Get current rates error:', error);
-      res.status(500).json(createApiResponse(false, null, null, 'Failed to retrieve current rates'));
+      res.status(500).json(createApiResponse(false, undefined, null, 'Failed to retrieve current rates'));
     }
   }
   
@@ -28,7 +28,7 @@ export class GoldRateController {
       
     } catch (error) {
       logger.error('Get gold rate history error:', error);
-      res.status(500).json(createApiResponse(false, null, null, 'Failed to retrieve gold rate history'));
+      res.status(500).json(createApiResponse(false, undefined, null, 'Failed to retrieve gold rate history'));
     }
   }
   
@@ -45,10 +45,10 @@ export class GoldRateController {
       logger.error('Update gold rates error:', error);
       
       if (error.message.includes('Failed to fetch')) {
-        return res.status(503).json(createApiResponse(false, null, null, 'External gold rate API unavailable'));
+        return res.status(503).json(createApiResponse(false, undefined, null, 'External gold rate API unavailable'));
       }
       
-      res.status(500).json(createApiResponse(false, null, null, 'Failed to update gold rates'));
+      res.status(500).json(createApiResponse(false, undefined, null, 'Failed to update gold rates'));
     }
   }
   
@@ -85,10 +85,10 @@ export class GoldRateController {
       logger.error('Manual rate update error:', error);
       
       if (error instanceof ServiceError) {
-        return res.status(error.statusCode).json(createApiResponse(false, null, null, error.message));
+        return res.status(error.statusCode).json(createApiResponse(false, undefined, null, error.message));
       }
       
-      res.status(500).json(createApiResponse(false, null, null, 'Failed to update rate manually'));
+      res.status(500).json(createApiResponse(false, undefined, null, 'Failed to update rate manually'));
     }
   }
 }

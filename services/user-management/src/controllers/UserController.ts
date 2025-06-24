@@ -43,7 +43,7 @@ export class UserController {
       
     } catch (error) {
       logger.error('Get all users error:', error);
-      res.status(500).json(createApiResponse(false, null, null, 'Internal server error'));
+      res.status(500).json(createApiResponse(false, undefined, 'Internal server error'));
     }
   }
   
@@ -77,10 +77,10 @@ export class UserController {
       logger.error('Get user by ID error:', error);
       
       if (error instanceof ServiceError) {
-        return res.status(error.statusCode).json(createApiResponse(false, null, null, error.message));
+        return res.status(error.statusCode).json(createApiResponse(false, undefined, undefined, error.message));
       }
       
-      res.status(500).json(createApiResponse(false, null, null, 'Internal server error'));
+      res.status(500).json(createApiResponse(false, undefined, 'Internal server error'));
     }
   }
   
@@ -144,10 +144,10 @@ export class UserController {
       logger.error('Update user error:', error);
       
       if (error instanceof ServiceError) {
-        return res.status(error.statusCode).json(createApiResponse(false, null, null, error.message));
+        return res.status(error.statusCode).json(createApiResponse(false, undefined, undefined, error.message));
       }
       
-      res.status(500).json(createApiResponse(false, null, null, 'Internal server error'));
+      res.status(500).json(createApiResponse(false, undefined, 'Internal server error'));
     }
   }
   
@@ -177,16 +177,16 @@ export class UserController {
       
       logger.info(`User deactivated: ${result.rows[0].email}`, { userId: id, deactivatedBy: currentUserId });
       
-      res.json(createApiResponse(true, null, 'User deactivated successfully'));
+      res.json(createApiResponse(true, undefined, 'User deactivated successfully'));
       
     } catch (error) {
       logger.error('Deactivate user error:', error);
       
       if (error instanceof ServiceError) {
-        return res.status(error.statusCode).json(createApiResponse(false, null, null, error.message));
+        return res.status(error.statusCode).json(createApiResponse(false, undefined, undefined, error.message));
       }
       
-      res.status(500).json(createApiResponse(false, null, null, 'Internal server error'));
+      res.status(500).json(createApiResponse(false, undefined, 'Internal server error'));
     }
   }
   
@@ -210,7 +210,7 @@ export class UserController {
       
     } catch (error) {
       logger.error('Get user customers error:', error);
-      res.status(500).json(createApiResponse(false, null, null, 'Internal server error'));
+      res.status(500).json(createApiResponse(false, undefined, 'Internal server error'));
     }
   }
 }

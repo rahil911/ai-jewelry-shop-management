@@ -1,0 +1,101 @@
+import { Request, Response, NextFunction } from 'express';
+import jwt from 'jsonwebtoken';
+import { logger } from '../utils/logger';
+
+interface JWTPayload {
+  id: number;
+  email: string;
+  role: string;
+  iat: number;
+  exp: number;
+}
+
+interface AuthenticatedRequest extends Request {
+  user: JWTPayload;
+}
+
+export const validateAuth = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const authHeader = req.headers.authorization;
+    
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      res.status(401).json({
+        success: false,
+        error: 'Access token required'
+      });
+      return;
+    }
+
+    const token = authHeader.substring(7); // Remove 'Bearer ' prefix
+    const jwtSecret = process.env.JWT_SECRET;
+
+    if (!jwtSecret) {
+      logger.error('JWT_SECRET not configured');
+      res.status(500).json({
+        success: false,
+        error: 'Server configuration error'
+      });
+      return;
+    }
+
+    try {
+      const decoded = jwt.verify(token, jwtSecret) as JWTPayload;
+      (req as AuthenticatedRequest).user = decoded;
+      next();
+    } catch (jwtError) {
+      if (jwtError instanceof jwt.TokenExpiredError) {
+        res.status(401).json({
+          success: false,
+          error: 'Token expired'
+        });
+        return;
+      }
+
+      if (jwtError instanceof jwt.JsonWebTokenError) {
+        res.status(401).json({
+          success: false,
+          error: 'Invalid token'
+        });
+        return;
+      }
+
+      throw jwtError;
+    }
+  } catch (error) {
+    logger.error('Authentication error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Authentication failed',
+      message: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+};
+
+export const requireRole = (roles: string[]) => {
+  return (req: Request, res: Response, next: NextFunction): void => {
+    const user = (req as AuthenticatedRequest).user;
+    
+    if (!user) {
+      res.status(401).json({
+        success: false,
+        error: 'Authentication required'
+      });
+      return;
+    }
+
+    if (!roles.includes(user.role)) {
+      res.status(403).json({
+        success: false,
+        error: 'Insufficient permissions',
+        required_role: roles,
+        user_role: user.role
+      });
+      return;
+    }
+
+    next();
+  };
+};
+
+export const requireOwnerOrManager = requireRole(['owner', 'manager']);
+export const requireStaff = requireRole(['owner', 'manager', 'staff']);

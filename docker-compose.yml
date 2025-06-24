@@ -1,0 +1,394 @@
+version: '3.8'
+
+services:
+  # Database Services
+  postgres:
+    image: postgres:15
+    container_name: jewelry-postgres
+    environment:
+      POSTGRES_DB: jewelry_shop
+      POSTGRES_USER: jewelry_admin
+      POSTGRES_PASSWORD: jewelry_secure_2024
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - jewelry-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U jewelry_admin -d jewelry_shop"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: jewelry-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - jewelry-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  # Microservices
+  user-management:
+    build:
+      context: ./services/user-management
+      dockerfile: Dockerfile.dev
+    container_name: jewelry-user-management
+    ports:
+      - "3001:3001"
+    environment:
+      NODE_ENV: development
+      PORT: 3001
+      DATABASE_URL: postgres://jewelry_admin:jewelry_secure_2024@postgres:5432/jewelry_shop
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: jewelry_jwt_secret_2024_ultra_secure
+      JWT_REFRESH_SECRET: jewelry_refresh_secret_2024_ultra_secure
+    volumes:
+      - ./services/user-management:/app
+      - /app/node_modules
+      - ./shared:/app/shared
+    networks:
+      - jewelry-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  inventory-management:
+    build:
+      context: ./services/inventory-management
+      dockerfile: Dockerfile.dev
+    container_name: jewelry-inventory-management
+    ports:
+      - "3002:3002"
+    environment:
+      NODE_ENV: development
+      PORT: 3002
+      DATABASE_URL: postgres://jewelry_admin:jewelry_secure_2024@postgres:5432/jewelry_shop
+      REDIS_URL: redis://redis:6379
+      USER_MANAGEMENT_URL: http://user-management:3001
+      PRICING_SERVICE_URL: http://pricing-service:3003
+    volumes:
+      - ./services/inventory-management:/app
+      - /app/node_modules
+      - ./shared:/app/shared
+    networks:
+      - jewelry-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3002/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  pricing-service:
+    build:
+      context: ./services/pricing-service
+      dockerfile: Dockerfile.dev
+    container_name: jewelry-pricing-service
+    ports:
+      - "3003:3003"
+    environment:
+      NODE_ENV: development
+      PORT: 3003
+      DATABASE_URL: postgres://jewelry_admin:jewelry_secure_2024@postgres:5432/jewelry_shop
+      REDIS_URL: redis://redis:6379
+      GOLD_API_KEY: your_gold_api_key_here
+      METAL_PRICE_API_KEY: your_metal_price_api_key_here
+    volumes:
+      - ./services/pricing-service:/app
+      - /app/node_modules
+      - ./shared:/app/shared
+    networks:
+      - jewelry-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3003/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  order-management:
+    build:
+      context: ./services/order-management
+      dockerfile: Dockerfile.dev
+    container_name: jewelry-order-management
+    ports:
+      - "3004:3004"
+    environment:
+      NODE_ENV: development
+      PORT: 3004
+      DATABASE_URL: postgres://jewelry_admin:jewelry_secure_2024@postgres:5432/jewelry_shop
+      REDIS_URL: redis://redis:6379
+      USER_MANAGEMENT_URL: http://user-management:3001
+      INVENTORY_SERVICE_URL: http://inventory-management:3002
+      PRICING_SERVICE_URL: http://pricing-service:3003
+      PAYMENT_SERVICE_URL: http://payment-service:3006
+      NOTIFICATION_SERVICE_URL: http://notification-service:3008
+    volumes:
+      - ./services/order-management:/app
+      - /app/node_modules
+      - ./shared:/app/shared
+    networks:
+      - jewelry-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3004/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  image-management:
+    build:
+      context: ./services/image-management
+      dockerfile: Dockerfile.dev
+    container_name: jewelry-image-management
+    ports:
+      - "3005:3005"
+    environment:
+      NODE_ENV: development
+      PORT: 3005
+      DATABASE_URL: postgres://jewelry_admin:jewelry_secure_2024@postgres:5432/jewelry_shop
+      REDIS_URL: redis://redis:6379
+      AZURE_STORAGE_CONNECTION_STRING: your_azure_storage_connection_string
+      AZURE_CDN_URL: your_azure_cdn_url
+    volumes:
+      - ./services/image-management:/app
+      - /app/node_modules
+      - ./shared:/app/shared
+      - uploads_data:/app/uploads
+    networks:
+      - jewelry-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3005/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  payment-service:
+    build:
+      context: ./services/payment-service
+      dockerfile: Dockerfile.dev
+    container_name: jewelry-payment-service
+    ports:
+      - "3006:3006"
+    environment:
+      NODE_ENV: development
+      PORT: 3006
+      DATABASE_URL: postgres://jewelry_admin:jewelry_secure_2024@postgres:5432/jewelry_shop
+      REDIS_URL: redis://redis:6379
+      RAZORPAY_KEY_ID: your_razorpay_key_id
+      RAZORPAY_KEY_SECRET: your_razorpay_key_secret
+      STRIPE_SECRET_KEY: your_stripe_secret_key
+      STRIPE_WEBHOOK_SECRET: your_stripe_webhook_secret
+    volumes:
+      - ./services/payment-service:/app
+      - /app/node_modules
+      - ./shared:/app/shared
+    networks:
+      - jewelry-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3006/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  llm-service:
+    build:
+      context: ./services/llm-service
+      dockerfile: Dockerfile.dev
+    container_name: jewelry-llm-service
+    ports:
+      - "3007:3007"
+    environment:
+      NODE_ENV: development
+      PORT: 3007
+      DATABASE_URL: postgres://jewelry_admin:jewelry_secure_2024@postgres:5432/jewelry_shop
+      REDIS_URL: redis://redis:6379
+      OPENAI_API_KEY: your_openai_api_key
+      GOOGLE_GEMINI_API_KEY: your_google_gemini_api_key
+      AZURE_SPEECH_KEY: your_azure_speech_key
+      AZURE_SPEECH_REGION: your_azure_speech_region
+    volumes:
+      - ./services/llm-service:/app
+      - /app/node_modules
+      - ./shared:/app/shared
+    networks:
+      - jewelry-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3007/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  notification-service:
+    build:
+      context: ./services/notification-service
+      dockerfile: Dockerfile.dev
+    container_name: jewelry-notification-service
+    ports:
+      - "3008:3008"
+    environment:
+      NODE_ENV: development
+      PORT: 3008
+      DATABASE_URL: postgres://jewelry_admin:jewelry_secure_2024@postgres:5432/jewelry_shop
+      REDIS_URL: redis://redis:6379
+      SMTP_HOST: your_smtp_host
+      SMTP_PORT: 587
+      SMTP_USER: your_smtp_user
+      SMTP_PASS: your_smtp_password
+      SMS_API_KEY: your_sms_api_key
+      WHATSAPP_API_KEY: your_whatsapp_api_key
+    volumes:
+      - ./services/notification-service:/app
+      - /app/node_modules
+      - ./shared:/app/shared
+    networks:
+      - jewelry-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3008/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  analytics-service:
+    build:
+      context: ./services/analytics-service
+      dockerfile: Dockerfile.dev
+    container_name: jewelry-analytics-service
+    ports:
+      - "3009:3009"
+    environment:
+      NODE_ENV: development
+      PORT: 3009
+      DATABASE_URL: postgres://jewelry_admin:jewelry_secure_2024@postgres:5432/jewelry_shop
+      REDIS_URL: redis://redis:6379
+    volumes:
+      - ./services/analytics-service:/app
+      - /app/node_modules
+      - ./shared:/app/shared
+    networks:
+      - jewelry-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3009/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Frontend
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    container_name: jewelry-frontend
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: development
+      NEXT_PUBLIC_API_URL: http://localhost:3010
+      NEXT_PUBLIC_USER_MANAGEMENT_URL: http://localhost:3001
+      NEXT_PUBLIC_PRICING_SERVICE_URL: http://localhost:3003
+      NEXT_PUBLIC_INVENTORY_SERVICE_URL: http://localhost:3002
+      NEXT_PUBLIC_ORDER_SERVICE_URL: http://localhost:3004
+      NEXT_PUBLIC_LLM_SERVICE_URL: http://localhost:3007
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+      - /app/.next
+    networks:
+      - jewelry-network
+    depends_on:
+      - user-management
+      - pricing-service
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # API Gateway (Optional - for production)
+  api-gateway:
+    image: nginx:alpine
+    container_name: jewelry-api-gateway
+    ports:
+      - "3010:80"
+    volumes:
+      - ./docker/nginx.conf:/etc/nginx/nginx.conf
+    networks:
+      - jewelry-network
+    depends_on:
+      - user-management
+      - inventory-management
+      - pricing-service
+      - order-management
+      - image-management
+      - payment-service
+      - llm-service
+      - notification-service
+      - analytics-service
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  postgres_data:
+  redis_data:
+  uploads_data:
+
+networks:
+  jewelry-network:
+    driver: bridge
