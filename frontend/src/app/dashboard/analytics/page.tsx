@@ -1,11 +1,11 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { 
   ChartBarIcon,
   CurrencyDollarIcon,
-  TrendingUpIcon,
-  TrendingDownIcon,
+  ArrowTrendingUpIcon as TrendingUpIcon,
+  ArrowTrendingDownIcon as TrendingDownIcon,
   CalendarIcon,
   UsersIcon,
   CubeIcon,

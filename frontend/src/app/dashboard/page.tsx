@@ -6,10 +6,11 @@ import {
   CubeIcon, 
   ShoppingCartIcon, 
   UsersIcon,
-  TrendingUpIcon,
-  TrendingDownIcon
+  ArrowTrendingUpIcon as TrendingUpIcon,
+  ArrowTrendingDownIcon as TrendingDownIcon
 } from '@heroicons/react/24/outline';
-import { useAuth } from '@/lib/auth/AuthContext';
+import { useAuth } from '@/lib/hooks/useAuth';
+import { useCurrentGoldRates } from '@/lib/hooks/usePricing';
 
 interface DashboardStats {
   totalRevenue: number;
@@ -24,6 +25,8 @@ interface DashboardStats {
 
 export default function DashboardPage() {
   const { user } = useAuth();
+  const { data: goldRates, isLoading: goldRatesLoading } = useCurrentGoldRates();
+  
   const [stats, setStats] = useState<DashboardStats>({
     totalRevenue: 0,
     totalOrders: 0,
@@ -40,21 +43,30 @@ export default function DashboardPage() {
     fetchDashboardData();
   }, []);
 
+  useEffect(() => {
+    // Update gold rate in stats when live data comes in
+    if (goldRates) {
+      setStats(prev => ({
+        ...prev,
+        goldRate: goldRates['22K'],
+        goldRateChange: 2.5, // TODO: Calculate from historical data
+      }));
+    }
+  }, [goldRates]);
+
   const fetchDashboardData = async () => {
     try {
-      // In a real implementation, these would be separate API calls
-      // For now, we'll use mock data
+      // Mock data for other stats - TODO: Connect to analytics API
       setTimeout(() => {
-        setStats({
+        setStats(prev => ({
+          ...prev,
           totalRevenue: 125000,
           totalOrders: 45,
           totalCustomers: 128,
           inventoryValue: 850000,
-          goldRate: 6420,
-          goldRateChange: 2.5,
           silverRate: 84,
           silverRateChange: -1.2,
-        });
+        }));
         setIsLoading(false);
       }, 1000);
     } catch (error) {

@@ -19,7 +19,7 @@ import {
   HeartIcon,
   GiftIcon
 } from '@heroicons/react/24/outline';
-import { useAuth } from '@/lib/auth/AuthContext';
+import { useAuth } from '@/lib/hooks/useAuth';
 
 interface Customer {
   id: number;
@@ -432,7 +432,7 @@ export default function CustomersPage() {
                 id="search"
                 value={filters.search}
                 onChange={(e) => setFilters({...filters, search: e.target.value})}
-                className="input pl-10"
+                className="input-field pl-10"
                 placeholder="Name, email, phone..."
               />
             </div>
@@ -446,7 +446,7 @@ export default function CustomersPage() {
               id="city"
               value={filters.city}
               onChange={(e) => setFilters({...filters, city: e.target.value})}
-              className="select"
+              className="input-field"
             >
               <option value="">All Cities</option>
               <option value="Bangalore">Bangalore</option>
@@ -464,7 +464,7 @@ export default function CustomersPage() {
               id="loyalty_tier"
               value={filters.loyalty_tier}
               onChange={(e) => setFilters({...filters, loyalty_tier: e.target.value})}
-              className="select"
+              className="input-field"
             >
               <option value="">All Tiers</option>
               <option value="gold">Gold (3000+ points)</option>
@@ -481,7 +481,7 @@ export default function CustomersPage() {
               id="last_purchase"
               value={filters.last_purchase}
               onChange={(e) => setFilters({...filters, last_purchase: e.target.value})}
-              className="select"
+              className="input-field"
             >
               <option value="">Any Time</option>
               <option value="30">Last 30 days</option>
