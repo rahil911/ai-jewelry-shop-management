@@ -80,7 +80,7 @@ export const logger = winston.createLogger({
 });
 
 // Create a stream object for morgan HTTP logging
-logger.stream = {
+(logger as any).stream = {
   write: (message: string) => {
     logger.http(message.trim());
   },

@@ -240,6 +240,61 @@ export enum PaymentStatus {
   REFUNDED = 'refunded'
 }
 
+export enum RepairStatus {
+  RECEIVED = 'received',
+  ASSESSED = 'assessed',
+  APPROVED = 'approved',
+  IN_PROGRESS = 'in_progress',
+  COMPLETED = 'completed',
+  READY_FOR_PICKUP = 'ready_for_pickup',
+  DELIVERED = 'delivered',
+  CANCELLED = 'cancelled'
+}
+
+export enum RepairType {
+  CLEANING = 'cleaning',
+  FIXING = 'fixing',
+  RESIZING = 'resizing',
+  STONE_REPLACEMENT = 'stone_replacement',
+  POLISHING = 'polishing',
+  CHAIN_REPAIR = 'chain_repair',
+  CLASP_REPAIR = 'clasp_repair',
+  ENGRAVING = 'engraving',
+  OTHER = 'other'
+}
+
+export enum ReturnStatus {
+  REQUESTED = 'requested',
+  APPROVED = 'approved',
+  REJECTED = 'rejected',
+  PROCESSED = 'processed',
+  COMPLETED = 'completed',
+  CANCELLED = 'cancelled'
+}
+
+export enum ReturnType {
+  FULL_RETURN = 'full_return',
+  PARTIAL_RETURN = 'partial_return',
+  EXCHANGE = 'exchange'
+}
+
+export enum NotificationType {
+  ORDER_CREATED = 'order_created',
+  STATUS_CHANGE = 'status_change',
+  PROGRESS_UPDATE = 'progress_update',
+  COMPLETION = 'completion',
+  REPAIR_UPDATE = 'repair_update',
+  RETURN_UPDATE = 'return_update',
+  CUSTOM_MESSAGE = 'custom_message'
+}
+
+export enum NotificationChannel {
+  WHATSAPP = 'whatsapp',
+  SMS = 'sms',
+  EMAIL = 'email',
+  PUSH = 'push'
+}
+
 // Response Types
 export interface ApiResponse<T = any> {
   success: boolean;
@@ -260,6 +315,205 @@ export interface ValidationError {
   field: string;
   message: string;
   code: string;
+}
+
+// Repair Service Types
+export interface RepairRequest {
+  id: number;
+  order_id: number;
+  item_description: string;
+  problem_description: string;
+  repair_type: RepairType;
+  estimated_cost: number;
+  estimated_completion: Date;
+  actual_cost?: number;
+  repair_notes?: string;
+  customer_approval_required: boolean;
+  customer_approved?: boolean;
+  before_photos: string[];
+  after_photos: string[];
+  repair_status: RepairStatus;
+  technician_id?: number;
+  created_at: Date;
+  updated_at: Date;
+  order?: JewelryOrder;
+  technician?: User;
+}
+
+export interface CreateRepairRequest {
+  order_id: number;
+  item_description: string;
+  problem_description: string;
+  repair_type: RepairType;
+  estimated_cost: number;
+  estimated_completion: Date;
+  customer_approval_required?: boolean;
+  technician_id?: number;
+}
+
+export interface UpdateRepairRequest {
+  repair_type?: RepairType;
+  estimated_cost?: number;
+  estimated_completion?: Date;
+  actual_cost?: number;
+  repair_notes?: string;
+  customer_approved?: boolean;
+  technician_id?: number;
+}
+
+export interface RepairStatusHistory {
+  id: number;
+  repair_id: number;
+  status: RepairStatus;
+  notes?: string;
+  photos: string[];
+  changed_by: number;
+  changed_at: Date;
+}
+
+// Return Service Types
+export interface ReturnRequest {
+  id: number;
+  order_id: number;
+  return_type: ReturnType;
+  reason: string;
+  reason_details?: string;
+  requested_by: number;
+  items_to_return: ReturnItem[];
+  return_amount: number;
+  exchange_items?: ExchangeItem[];
+  exchange_amount_difference?: number;
+  status: ReturnStatus;
+  processed_by?: number;
+  refund_method?: string;
+  refund_reference?: string;
+  created_at: Date;
+  processed_at?: Date;
+  order?: JewelryOrder;
+  requester?: User;
+  processor?: User;
+}
+
+export interface ReturnItem {
+  order_item_id: number;
+  quantity: number;
+  reason?: string;
+}
+
+export interface ExchangeItem {
+  jewelry_item_id: number;
+  quantity: number;
+  unit_price: number;
+}
+
+export interface CreateReturnRequest {
+  order_id: number;
+  return_type: ReturnType;
+  reason: string;
+  reason_details?: string;
+  items_to_return: ReturnItem[];
+  exchange_items?: ExchangeItem[];
+}
+
+export interface ReturnStatusHistory {
+  id: number;
+  return_id: number;
+  status: ReturnStatus;
+  notes?: string;
+  changed_by: number;
+  changed_at: Date;
+}
+
+// Notification Types
+export interface NotificationRequest {
+  customer_id: number;
+  order_id?: number;
+  repair_id?: number;
+  return_id?: number;
+  notification_type: NotificationType;
+  channels: NotificationChannel[];
+  template_data: NotificationTemplateData;
+  scheduled_at?: Date;
+}
+
+export interface NotificationTemplateData {
+  order_number?: string;
+  status?: string;
+  estimated_completion?: string;
+  custom_message?: string;
+  customer_name?: string;
+  total_amount?: number;
+  repair_type?: string;
+  return_reason?: string;
+  [key: string]: any;
+}
+
+export interface OrderNotification {
+  id: number;
+  order_id?: number;
+  repair_id?: number;
+  return_id?: number;
+  customer_id: number;
+  notification_type: NotificationType;
+  channels: NotificationChannel[];
+  template_data: NotificationTemplateData;
+  sent_at?: Date;
+  delivery_status: { [key in NotificationChannel]?: 'pending' | 'sent' | 'delivered' | 'failed' };
+  created_at: Date;
+}
+
+export interface NotificationTemplate {
+  id: number;
+  notification_type: NotificationType;
+  channel: NotificationChannel;
+  language: string;
+  subject?: string;
+  template: string;
+  is_active: boolean;
+  created_at: Date;
+  updated_at: Date;
+}
+
+// Enhanced Invoice Types
+export interface EnhancedInvoiceData {
+  business_logo?: string;
+  itemized_breakdown: InvoiceItemDetail[];
+  tax_breakdown: TaxDetails;
+  payment_terms: string;
+  warranty_information?: string;
+  care_instructions?: string;
+  return_policy?: string;
+  digital_signature: boolean;
+  qr_code?: string;
+}
+
+export interface InvoiceItemDetail {
+  name: string;
+  sku: string;
+  description: string;
+  metal_type: string;
+  purity: string;
+  weight: number;
+  quantity: number;
+  unit_price: number;
+  making_charges: number;
+  wastage_amount: number;
+  total_price: number;
+  customization_details?: string;
+}
+
+export interface TaxDetails {
+  subtotal: number;
+  making_charges_total: number;
+  wastage_total: number;
+  cgst_rate: number;
+  cgst_amount: number;
+  sgst_rate: number;
+  sgst_amount: number;
+  igst_rate: number;
+  igst_amount: number;
+  total_tax: number;
+  grand_total: number;
 }
 
 // Helper function to create API responses

@@ -1,0 +1,45 @@
+# Development Environment Configuration
+name: development
+
+# Environment variables specific to development
+variables:
+  REGISTRY: "jewelryshopacr01280.azurecr.io"
+  RESOURCE_GROUP: "jewelry-shop-dev-rg"
+  LOCATION: "eastus"
+  VM_HOST: "dev-jewelry.example.com"
+  VM_USER: "azureuser"
+  
+# Environment-specific deployment settings
+deployment:
+  strategy: "rolling"
+  health_check_timeout: "300s"
+  rollback_enabled: true
+  
+# Service configuration
+services:
+  replicas: 1
+  resources:
+    cpu: "0.5"
+    memory: "512Mi"
+    
+# Database configuration
+database:
+  tier: "Basic"
+  sku: "B1"
+  storage: "5GB"
+  
+# Monitoring
+monitoring:
+  log_level: "debug"
+  metrics_enabled: true
+  tracing_enabled: true
+  
+# Security
+security:
+  environment_protection: false
+  required_reviewers: 0
+  
+# Notifications
+notifications:
+  slack_channel: "#dev-deployments"
+  email_alerts: ["dev-team@jewelry-shop.com"]

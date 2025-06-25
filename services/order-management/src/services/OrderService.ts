@@ -10,11 +10,16 @@ import {
   CustomizationRequest,
   OrderFilters,
   OrderStats
-} from '@jewelry-shop/shared/types';
+} from '@jewelry-shop/shared';
 import { logger } from '../utils/logger';
+import { NotificationIntegration } from './NotificationIntegration';
 
 export class OrderService {
-  constructor(private db: Pool) {}
+  private notificationIntegration: NotificationIntegration;
+
+  constructor(private db: Pool) {
+    this.notificationIntegration = new NotificationIntegration(db);
+  }
 
   // Generate unique order number
   private generateOrderNumber(): string {
@@ -305,6 +310,9 @@ export class OrderService {
 
       await client.query('COMMIT');
 
+      // Send order creation notification
+      await this.notificationIntegration.sendOrderCreatedNotification(order.id);
+
       // Return complete order details
       return await this.getOrderById(order.id) as JewelryOrder;
 
@@ -438,6 +446,9 @@ export class OrderService {
     `;
     
     await this.db.query(logQuery, [orderId, status, notes, userId]);
+
+    // Send status change notification
+    await this.notificationIntegration.sendOrderStatusUpdate(orderId, status, notes);
 
     return await this.getOrderById(orderId);
   }

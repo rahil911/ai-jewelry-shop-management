@@ -11,7 +11,7 @@ import {
   JewelryOrder,
   OrderItem,
   CustomizationRequest
-} from '@jewelry-shop/shared/types';
+} from '@jewelry-shop/shared';
 
 export class OrderController {
   private orderService: OrderService;
@@ -37,15 +37,16 @@ export class OrderController {
         search
       } = req.query;
 
-      const filters = {
-        status: status as OrderStatus,
-        customer_id: customer_id ? parseInt(customer_id as string) : undefined,
-        staff_id: staff_id ? parseInt(staff_id as string) : undefined,
-        order_type: order_type as OrderType,
-        date_from: date_from as string,
-        date_to: date_to as string,
-        search: search as string
-      };
+      // Create clean filters object with only defined values
+      const filters: any = {};
+      
+      if (status) filters.status = status as OrderStatus;
+      if (customer_id) filters.customer_id = parseInt(customer_id as string);
+      if (staff_id) filters.staff_id = parseInt(staff_id as string);
+      if (order_type) filters.order_type = order_type as OrderType;
+      if (date_from) filters.date_from = date_from as string;
+      if (date_to) filters.date_to = date_to as string;
+      if (search) filters.search = search as string;
 
       const result = await this.orderService.getOrders(
         parseInt(page as string),
@@ -77,6 +78,15 @@ export class OrderController {
   async getOrderById(req: Request, res: Response): Promise<void> {
     try {
       const { id } = req.params;
+      
+      if (!id) {
+        res.status(400).json({
+          success: false,
+          error: 'Order ID is required'
+        });
+        return;
+      }
+      
       const orderId = parseInt(id);
 
       if (isNaN(orderId)) {
@@ -152,6 +162,15 @@ export class OrderController {
   async updateOrder(req: Request, res: Response): Promise<void> {
     try {
       const { id } = req.params;
+      
+      if (!id) {
+        res.status(400).json({
+          success: false,
+          error: 'Order ID is required'
+        });
+        return;
+      }
+      
       const orderId = parseInt(id);
       const updateData = req.body as UpdateOrderRequest;
       const userId = (req as any).user.id;
@@ -196,6 +215,15 @@ export class OrderController {
     try {
       const { id } = req.params;
       const { status, notes } = req.body;
+      
+      if (!id) {
+        res.status(400).json({
+          success: false,
+          error: 'Order ID is required'
+        });
+        return;
+      }
+      
       const orderId = parseInt(id);
       const userId = (req as any).user.id;
 
@@ -247,6 +275,15 @@ export class OrderController {
     try {
       const { id } = req.params;
       const customizationData = req.body as CustomizationRequest;
+      
+      if (!id) {
+        res.status(400).json({
+          success: false,
+          error: 'Order ID is required'
+        });
+        return;
+      }
+      
       const orderId = parseInt(id);
       const userId = (req as any).user.id;
 
@@ -281,6 +318,15 @@ export class OrderController {
   async generateInvoice(req: Request, res: Response): Promise<void> {
     try {
       const { id } = req.params;
+      
+      if (!id) {
+        res.status(400).json({
+          success: false,
+          error: 'Order ID is required'
+        });
+        return;
+      }
+      
       const orderId = parseInt(id);
 
       if (isNaN(orderId)) {
@@ -346,6 +392,15 @@ export class OrderController {
     try {
       const { id } = req.params;
       const { reason } = req.body;
+      
+      if (!id) {
+        res.status(400).json({
+          success: false,
+          error: 'Order ID is required'
+        });
+        return;
+      }
+      
       const orderId = parseInt(id);
       const userId = (req as any).user.id;
 

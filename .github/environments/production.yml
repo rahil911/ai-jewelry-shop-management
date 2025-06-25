@@ -1,0 +1,63 @@
+# Production Environment Configuration
+name: production
+
+# Environment variables specific to production
+variables:
+  REGISTRY: "jewelryshopacr01280.azurecr.io"
+  RESOURCE_GROUP: "jewelry-shop-rg"
+  LOCATION: "eastus"
+  VM_HOST: "4.236.132.147"
+  VM_USER: "azureuser"
+  
+# Environment-specific deployment settings
+deployment:
+  strategy: "blue-green"
+  health_check_timeout: "600s"
+  rollback_enabled: true
+  pre_deployment_checks: true
+  
+# Service configuration
+services:
+  replicas: 2
+  resources:
+    cpu: "1.0"
+    memory: "1024Mi"
+    
+# Database configuration
+database:
+  tier: "Standard"
+  sku: "S2"
+  storage: "100GB"
+  backup_retention: "35 days"
+  
+# Monitoring
+monitoring:
+  log_level: "info"
+  metrics_enabled: true
+  tracing_enabled: true
+  alerting_enabled: true
+  
+# Security
+security:
+  environment_protection: true
+  required_reviewers: 2
+  deployment_branch_policy: "main"
+  
+# Notifications
+notifications:
+  slack_channel: "#production-deployments"
+  email_alerts: ["ops-team@jewelry-shop.com", "management@jewelry-shop.com"]
+  
+# Performance
+performance:
+  auto_scaling_enabled: true
+  min_replicas: 1
+  max_replicas: 5
+  cpu_threshold: 70
+  memory_threshold: 80
+  
+# Backup
+backup:
+  database_backup: "daily"
+  file_backup: "weekly"
+  retention_period: "90 days"

@@ -5,10 +5,13 @@ import morgan from 'morgan';
 import dotenv from 'dotenv';
 import rateLimit from 'express-rate-limit';
 import { Pool } from 'pg';
-import Redis from 'redis';
+import { createClient } from 'redis';
 import { errorHandler } from './middleware/errorHandler';
 import { validateAuth } from './middleware/auth';
 import { initializeOrderRoutes } from './routes/orders';
+import { initializeRepairRoutes } from './routes/repairs';
+import { initializeReturnRoutes } from './routes/returns';
+import { initializeNotificationRoutes } from './routes/notifications';
 import { logger } from './utils/logger';
 
 dotenv.config();
@@ -52,7 +55,7 @@ export const db = new Pool({
 });
 
 // Redis connection
-export const redis = Redis.createClient({
+export const redis = createClient({
   url: process.env.REDIS_URL || 'redis://localhost:6379'
 });
 
@@ -95,7 +98,14 @@ app.use('/api', validateAuth);
 
 // Routes
 const orderRoutes = initializeOrderRoutes(db);
+const repairRoutes = initializeRepairRoutes(db);
+const returnRoutes = initializeReturnRoutes(db);
+const notificationRoutes = initializeNotificationRoutes(db);
+
 app.use('/api/orders', orderRoutes);
+app.use('/api/repairs', repairRoutes);
+app.use('/api/returns', returnRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 // Error handling
 app.use(errorHandler);

@@ -1,245 +1,73 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState, useMemo } from 'react';
 import { 
   CreditCardIcon,
   BanknotesIcon,
   ReceiptPercentIcon,
   CalendarIcon,
   MagnifyingGlassIcon,
-  FunnelIcon,
   CheckCircleIcon,
   ClockIcon,
   XCircleIcon,
   DocumentTextIcon,
   PrinterIcon,
   ArrowDownTrayIcon,
-  ExclamationTriangleIcon
+  ExclamationTriangleIcon,
+  PlusIcon,
+  EyeIcon,
+  PencilIcon
 } from '@heroicons/react/24/outline';
-import { useAuth } from '@/lib/auth/AuthContext';
-
-interface Payment {
-  id: number;
-  invoice_number: string;
-  order_id: number;
-  order_number: string;
-  customer_name: string;
-  customer_phone: string;
-  payment_method: 'cash' | 'card' | 'upi' | 'bank_transfer' | 'cheque';
-  payment_status: 'pending' | 'partial' | 'completed' | 'failed' | 'refunded';
-  total_amount: number;
-  paid_amount: number;
-  pending_amount: number;
-  transaction_id?: string;
-  payment_date: string;
-  due_date?: string;
-  notes?: string;
-  created_at: string;
-  updated_at: string;
-}
-
-interface PaymentFilters {
-  search: string;
-  payment_method: string;
-  payment_status: string;
-  date_from: string;
-  date_to: string;
-}
-
-interface PaymentStats {
-  totalRevenue: number;
-  pendingPayments: number;
-  completedToday: number;
-  overduePayments: number;
-}
+import { useAuth } from '@/lib/hooks/useAuth';
+import { 
+  usePayments, 
+  usePaymentStats, 
+  usePaymentMethods,
+  useCreatePayment,
+  useUpdatePayment,
+  useProcessRefund,
+  useDownloadInvoice,
+  useGenerateInvoice
+} from '@/lib/hooks/usePayments';
+import type { Payment, PaymentFilters, PaymentMethod, PaymentStatus } from '@/lib/api/services/payments';
 
 export default function PaymentsPage() {
   const { user } = useAuth();
-  const [payments, setPayments] = useState<Payment[]>([]);
-  const [filteredPayments, setFilteredPayments] = useState<Payment[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [filters, setFilters] = useState<PaymentFilters>({
     search: '',
-    payment_method: '',
-    payment_status: '',
+    status: undefined,
+    payment_method: undefined,
     date_from: '',
     date_to: ''
   });
-  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
-  const [paymentStats, setPaymentStats] = useState<PaymentStats>({
-    totalRevenue: 0,
-    pendingPayments: 0,
-    completedToday: 0,
-    overduePayments: 0
-  });
+  const [showRefundModal, setShowRefundModal] = useState(false);
 
-  useEffect(() => {
-    fetchPaymentsData();
-  }, []);
+  // React Query hooks for data fetching
+  const { data: payments = [], isLoading, error } = usePayments(filters);
+  const { data: paymentStats } = usePaymentStats();
+  const { data: paymentMethods = [] } = usePaymentMethods();
+  const createPaymentMutation = useCreatePayment();
+  const updatePaymentMutation = useUpdatePayment();
+  const processRefundMutation = useProcessRefund();
+  const downloadInvoiceMutation = useDownloadInvoice();
+  const generateInvoiceMutation = useGenerateInvoice();
 
-  useEffect(() => {
-    applyFilters();
-  }, [payments, filters]);
-
-  const fetchPaymentsData = async () => {
-    try {
-      // In a real implementation, this would call the payments API
-      // For now, using mock data
-      setTimeout(() => {
-        const mockPayments: Payment[] = [
-          {
-            id: 1,
-            invoice_number: 'INV-24-001',
-            order_id: 1,
-            order_number: 'ORD241223001',
-            customer_name: 'Priya Sharma',
-            customer_phone: '+91 9876543210',
-            payment_method: 'upi',
-            payment_status: 'completed',
-            total_amount: 334750,
-            paid_amount: 334750,
-            pending_amount: 0,
-            transaction_id: 'TXN123456789',
-            payment_date: '2024-01-23T14:30:00Z',
-            created_at: '2024-01-23T10:30:00Z',
-            updated_at: '2024-01-23T14:30:00Z'
-          },
-          {
-            id: 2,
-            invoice_number: 'INV-24-002',
-            order_id: 2,
-            order_number: 'ORD241223002',
-            customer_name: 'Anita Patel',
-            customer_phone: '+91 9876543211',
-            payment_method: 'card',
-            payment_status: 'partial',
-            total_amount: 183340,
-            paid_amount: 100000,
-            pending_amount: 83340,
-            transaction_id: 'TXN123456790',
-            payment_date: '2024-01-23T15:00:00Z',
-            due_date: '2024-02-15T10:00:00Z',
-            notes: 'Partial payment received, balance due on delivery',
-            created_at: '2024-01-23T11:15:00Z',
-            updated_at: '2024-01-23T15:00:00Z'
-          },
-          {
-            id: 3,
-            invoice_number: 'INV-24-003',
-            order_id: 3,
-            order_number: 'ORD241223003',
-            customer_name: 'Vikram Singh',
-            customer_phone: '+91 9876543212',
-            payment_method: 'cash',
-            payment_status: 'completed',
-            total_amount: 7210,
-            paid_amount: 7210,
-            pending_amount: 0,
-            payment_date: '2024-01-25T16:30:00Z',
-            created_at: '2024-01-22T09:00:00Z',
-            updated_at: '2024-01-25T16:30:00Z'
-          },
-          {
-            id: 4,
-            invoice_number: 'INV-24-004',
-            order_id: 4,
-            order_number: 'ORD241223004',
-            customer_name: 'Meera Reddy',
-            customer_phone: '+91 9876543213',
-            payment_method: 'bank_transfer',
-            payment_status: 'pending',
-            total_amount: 115360,
-            paid_amount: 0,
-            pending_amount: 115360,
-            payment_date: '2024-01-24T10:15:00Z',
-            due_date: '2024-01-30T10:00:00Z',
-            notes: 'Awaiting bank transfer confirmation',
-            created_at: '2024-01-23T14:20:00Z',
-            updated_at: '2024-01-24T10:15:00Z'
-          },
-          {
-            id: 5,
-            invoice_number: 'INV-24-005',
-            order_id: 5,
-            order_number: 'ORD241223005',
-            customer_name: 'Rahul Gupta',
-            customer_phone: '+91 9876543214',
-            payment_method: 'cheque',
-            payment_status: 'failed',
-            total_amount: 95000,
-            paid_amount: 0,
-            pending_amount: 95000,
-            payment_date: '2024-01-22T11:45:00Z',
-            due_date: '2024-01-20T10:00:00Z',
-            notes: 'Cheque bounced - insufficient funds',
-            created_at: '2024-01-18T09:30:00Z',
-            updated_at: '2024-01-22T11:45:00Z'
-          }
-        ];
-
-        setPayments(mockPayments);
-        
-        // Calculate stats
-        const today = new Date().toDateString();
-        const stats: PaymentStats = {
-          totalRevenue: mockPayments
-            .filter(p => p.payment_status === 'completed')
-            .reduce((sum, payment) => sum + payment.paid_amount, 0),
-          pendingPayments: mockPayments
-            .filter(p => p.payment_status === 'pending' || p.payment_status === 'partial')
-            .reduce((sum, payment) => sum + payment.pending_amount, 0),
-          completedToday: mockPayments
-            .filter(p => p.payment_status === 'completed' && 
-              new Date(p.payment_date).toDateString() === today).length,
-          overduePayments: mockPayments
-            .filter(p => p.due_date && new Date(p.due_date) < new Date() && 
-              (p.payment_status === 'pending' || p.payment_status === 'partial')).length
-        };
-        setPaymentStats(stats);
-        
-        setIsLoading(false);
-      }, 1000);
-    } catch (error) {
-      console.error('Failed to fetch payments data:', error);
-      setIsLoading(false);
-    }
-  };
-
-  const applyFilters = () => {
-    let filtered = [...payments];
-
-    if (filters.search) {
-      filtered = filtered.filter(payment => 
-        payment.invoice_number.toLowerCase().includes(filters.search.toLowerCase()) ||
-        payment.order_number.toLowerCase().includes(filters.search.toLowerCase()) ||
-        payment.customer_name.toLowerCase().includes(filters.search.toLowerCase()) ||
-        payment.customer_phone.includes(filters.search)
-      );
-    }
-
-    if (filters.payment_method) {
-      filtered = filtered.filter(payment => payment.payment_method === filters.payment_method);
-    }
-
-    if (filters.payment_status) {
-      filtered = filtered.filter(payment => payment.payment_status === filters.payment_status);
-    }
-
-    if (filters.date_from) {
-      filtered = filtered.filter(payment => 
-        new Date(payment.created_at) >= new Date(filters.date_from)
-      );
-    }
-
-    if (filters.date_to) {
-      filtered = filtered.filter(payment => 
-        new Date(payment.created_at) <= new Date(filters.date_to)
-      );
-    }
-
-    setFilteredPayments(filtered);
-  };
+  // Filter payments based on search (client-side filtering for better UX)
+  const filteredPayments = useMemo(() => {
+    return payments.filter(payment => {
+      if (filters.search) {
+        const searchLower = filters.search.toLowerCase();
+        return (
+          payment.order_number?.toLowerCase().includes(searchLower) ||
+          payment.customer_name?.toLowerCase().includes(searchLower) ||
+          payment.transaction_id?.toLowerCase().includes(searchLower)
+        );
+      }
+      return true;
+    });
+  }, [payments, filters.search]);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-IN', {
@@ -250,33 +78,50 @@ export default function PaymentsPage() {
     }).format(amount);
   };
 
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (status: PaymentStatus) => {
     switch (status) {
-      case 'pending': return 'text-yellow-600 bg-yellow-100';
-      case 'partial': return 'text-blue-600 bg-blue-100';
       case 'completed': return 'text-green-600 bg-green-100';
+      case 'pending': return 'text-yellow-600 bg-yellow-100';
       case 'failed': return 'text-red-600 bg-red-100';
-      case 'refunded': return 'text-purple-600 bg-purple-100';
+      case 'refunded': return 'text-blue-600 bg-blue-100';
+      case 'partial': return 'text-orange-600 bg-orange-100';
       default: return 'text-gray-600 bg-gray-100';
     }
   };
 
-  const getMethodIcon = (method: string) => {
+  const getMethodColor = (method: PaymentMethod) => {
     switch (method) {
-      case 'cash': return <BanknotesIcon className="h-5 w-5" />;
-      case 'card': return <CreditCardIcon className="h-5 w-5" />;
-      case 'upi': return <CreditCardIcon className="h-5 w-5" />;
-      case 'bank_transfer': return <BanknotesIcon className="h-5 w-5" />;
-      case 'cheque': return <DocumentTextIcon className="h-5 w-5" />;
-      default: return <CreditCardIcon className="h-5 w-5" />;
+      case 'cash': return 'text-green-600 bg-green-100';
+      case 'card': return 'text-blue-600 bg-blue-100';
+      case 'upi': return 'text-purple-600 bg-purple-100';
+      case 'bank_transfer': return 'text-indigo-600 bg-indigo-100';
+      case 'gold_exchange': return 'text-yellow-600 bg-yellow-100';
+      case 'emi': return 'text-pink-600 bg-pink-100';
+      default: return 'text-gray-600 bg-gray-100';
     }
   };
 
-  const isOverdue = (payment: Payment) => {
-    return payment.due_date && 
-           new Date(payment.due_date) < new Date() && 
-           (payment.payment_status === 'pending' || payment.payment_status === 'partial');
+  const handleDownloadInvoice = (paymentId: number) => {
+    downloadInvoiceMutation.mutate(paymentId);
   };
+
+  const handleGenerateInvoice = (orderId: number) => {
+    generateInvoiceMutation.mutate(orderId);
+  };
+
+  if (error) {
+    return (
+      <div className="text-center py-12">
+        <div className="text-red-600 mb-4">Failed to load payments</div>
+        <button 
+          onClick={() => window.location.reload()} 
+          className="btn-primary"
+        >
+          Retry
+        </button>
+      </div>
+    );
+  }
 
   if (isLoading) {
     return (
@@ -305,19 +150,19 @@ export default function PaymentsPage() {
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Payment Management</h1>
           <p className="mt-1 text-sm text-gray-500">
-            Track payments, manage invoices, and handle billing
+            Process payments, track transactions, and manage invoices
           </p>
         </div>
         <div className="flex space-x-3">
           <button
-            onClick={() => setShowPaymentModal(true)}
+            onClick={() => setShowCreateModal(true)}
             className="btn-primary flex items-center"
           >
-            <CreditCardIcon className="h-5 w-5 mr-2" />
-            Record Payment
+            <PlusIcon className="h-5 w-5 mr-2" />
+            Process Payment
           </button>
           <button className="btn-secondary flex items-center">
-            <ArrowDownTrayIcon className="h-5 w-5 mr-2" />
+            <DocumentTextIcon className="h-5 w-5 mr-2" />
             Export Report
           </button>
         </div>
@@ -332,7 +177,19 @@ export default function PaymentsPage() {
             </div>
             <div className="ml-5">
               <div className="text-sm font-medium text-gray-500">Total Revenue</div>
-              <div className="text-2xl font-bold text-gray-900">{formatCurrency(paymentStats.totalRevenue)}</div>
+              <div className="text-2xl font-bold text-gray-900">{formatCurrency(paymentStats?.total_amount || 0)}</div>
+            </div>
+          </div>
+        </div>
+
+        <div className="card">
+          <div className="flex items-center">
+            <div className="flex-shrink-0">
+              <CreditCardIcon className="h-6 w-6 text-blue-600" />
+            </div>
+            <div className="ml-5">
+              <div className="text-sm font-medium text-gray-500">Total Payments</div>
+              <div className="text-2xl font-bold text-gray-900">{paymentStats?.total_payments || 0}</div>
             </div>
           </div>
         </div>
@@ -344,7 +201,7 @@ export default function PaymentsPage() {
             </div>
             <div className="ml-5">
               <div className="text-sm font-medium text-gray-500">Pending Payments</div>
-              <div className="text-2xl font-bold text-gray-900">{formatCurrency(paymentStats.pendingPayments)}</div>
+              <div className="text-2xl font-bold text-gray-900">{paymentStats?.pending_payments || 0}</div>
             </div>
           </div>
         </div>
@@ -352,31 +209,39 @@ export default function PaymentsPage() {
         <div className="card">
           <div className="flex items-center">
             <div className="flex-shrink-0">
-              <CheckCircleIcon className="h-6 w-6 text-blue-600" />
+              <CheckCircleIcon className="h-6 w-6 text-green-600" />
             </div>
             <div className="ml-5">
               <div className="text-sm font-medium text-gray-500">Completed Today</div>
-              <div className="text-2xl font-bold text-gray-900">{paymentStats.completedToday}</div>
-            </div>
-          </div>
-        </div>
-
-        <div className="card">
-          <div className="flex items-center">
-            <div className="flex-shrink-0">
-              <ExclamationTriangleIcon className="h-6 w-6 text-red-600" />
-            </div>
-            <div className="ml-5">
-              <div className="text-sm font-medium text-gray-500">Overdue Payments</div>
-              <div className="text-2xl font-bold text-gray-900">{paymentStats.overduePayments}</div>
+              <div className="text-2xl font-bold text-gray-900">{paymentStats?.completed_today || 0}</div>
             </div>
           </div>
         </div>
       </div>
 
+      {/* Payment Methods Overview */}
+      <div className="card">
+        <h3 className="text-lg font-medium text-gray-900 mb-4">Payment Methods</h3>
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+          {paymentMethods?.map((method) => (
+            <div key={method.method} className={`p-3 rounded-lg border ${method.enabled ? 'border-green-200 bg-green-50' : 'border-gray-200 bg-gray-50'}`}>
+              <div className="text-sm font-medium text-gray-900 capitalize">
+                {method.method.replace('_', ' ')}
+              </div>
+              <div className="text-xs text-gray-500 mt-1">
+                {method.enabled ? 'Active' : 'Disabled'}
+              </div>
+              <div className="text-xs text-gray-500 mt-1">
+                {paymentStats?.payments_by_method?.[method.method] || 0} payments
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
       {/* Filters */}
       <div className="card">
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-6">
           <div>
             <label htmlFor="search" className="block text-sm font-medium text-gray-700 mb-2">
               Search
@@ -390,10 +255,29 @@ export default function PaymentsPage() {
                 id="search"
                 value={filters.search}
                 onChange={(e) => setFilters({...filters, search: e.target.value})}
-                className="input pl-10"
-                placeholder="Invoice, order, customer..."
+                className="input-field pl-10"
+                placeholder="Order, customer, transaction..."
               />
             </div>
+          </div>
+
+          <div>
+            <label htmlFor="status" className="block text-sm font-medium text-gray-700 mb-2">
+              Status
+            </label>
+            <select
+              id="status"
+              value={filters.status || ''}
+              onChange={(e) => setFilters({...filters, status: e.target.value as PaymentStatus})}
+              className="input-field"
+            >
+              <option value="">All Status</option>
+              <option value="completed">Completed</option>
+              <option value="pending">Pending</option>
+              <option value="failed">Failed</option>
+              <option value="refunded">Refunded</option>
+              <option value="partial">Partial</option>
+            </select>
           </div>
 
           <div>
@@ -402,35 +286,17 @@ export default function PaymentsPage() {
             </label>
             <select
               id="payment_method"
-              value={filters.payment_method}
-              onChange={(e) => setFilters({...filters, payment_method: e.target.value})}
-              className="select"
+              value={filters.payment_method || ''}
+              onChange={(e) => setFilters({...filters, payment_method: e.target.value as PaymentMethod})}
+              className="input-field"
             >
               <option value="">All Methods</option>
               <option value="cash">Cash</option>
               <option value="card">Card</option>
               <option value="upi">UPI</option>
               <option value="bank_transfer">Bank Transfer</option>
-              <option value="cheque">Cheque</option>
-            </select>
-          </div>
-
-          <div>
-            <label htmlFor="payment_status" className="block text-sm font-medium text-gray-700 mb-2">
-              Status
-            </label>
-            <select
-              id="payment_status"
-              value={filters.payment_status}
-              onChange={(e) => setFilters({...filters, payment_status: e.target.value})}
-              className="select"
-            >
-              <option value="">All Status</option>
-              <option value="pending">Pending</option>
-              <option value="partial">Partial</option>
-              <option value="completed">Completed</option>
-              <option value="failed">Failed</option>
-              <option value="refunded">Refunded</option>
+              <option value="gold_exchange">Gold Exchange</option>
+              <option value="emi">EMI</option>
             </select>
           </div>
 
@@ -443,7 +309,7 @@ export default function PaymentsPage() {
               id="date_from"
               value={filters.date_from}
               onChange={(e) => setFilters({...filters, date_from: e.target.value})}
-              className="input"
+              className="input-field"
             />
           </div>
 
@@ -456,18 +322,18 @@ export default function PaymentsPage() {
               id="date_to"
               value={filters.date_to}
               onChange={(e) => setFilters({...filters, date_to: e.target.value})}
-              className="input"
+              className="input-field"
             />
           </div>
-        </div>
-        
-        <div className="mt-4 flex justify-end">
-          <button
-            onClick={() => setFilters({search: '', payment_method: '', payment_status: '', date_from: '', date_to: ''})}
-            className="btn-outline"
-          >
-            Clear Filters
-          </button>
+
+          <div className="flex items-end">
+            <button
+              onClick={() => setFilters({search: '', status: undefined, payment_method: undefined, date_from: '', date_to: ''})}
+              className="btn-outline w-full"
+            >
+              Clear Filters
+            </button>
+          </div>
         </div>
       </div>
 
@@ -478,19 +344,19 @@ export default function PaymentsPage() {
             <thead className="bg-gray-50">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Invoice Details
+                  Payment Details
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Customer
+                  Customer & Order
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Amount Details
+                  Method & Status
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Payment Info
+                  Amount
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Status & Due Date
+                  Date
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Actions
@@ -499,67 +365,64 @@ export default function PaymentsPage() {
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {filteredPayments.map((payment) => (
-                <tr key={payment.id} className={`hover:bg-gray-50 ${isOverdue(payment) ? 'bg-red-50' : ''}`}>
+                <tr key={payment.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div>
-                      <div className="text-sm font-medium text-gray-900">{payment.invoice_number}</div>
-                      <div className="text-sm text-gray-500">Order: {payment.order_number}</div>
-                      {isOverdue(payment) && (
-                        <div className="text-xs text-red-600 font-medium">OVERDUE</div>
+                      <div className="text-sm font-medium text-gray-900">
+                        Payment #{payment.id}
+                      </div>
+                      {payment.transaction_id && (
+                        <div className="text-sm text-gray-500">
+                          TXN: {payment.transaction_id}
+                        </div>
                       )}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div>
-                      <div className="text-sm font-medium text-gray-900">{payment.customer_name}</div>
-                      <div className="text-sm text-gray-500">{payment.customer_phone}</div>
+                      {payment.notes && (
+                        <div className="text-xs text-gray-400 mt-1">
+                          {payment.notes.length > 30 
+                            ? `${payment.notes.substring(0, 30)}...` 
+                            : payment.notes}
+                        </div>
+                      )}
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div>
                       <div className="text-sm font-medium text-gray-900">
-                        Total: {formatCurrency(payment.total_amount)}
+                        {payment.customer_name || 'Unknown Customer'}
                       </div>
-                      <div className="text-sm text-green-600">
-                        Paid: {formatCurrency(payment.paid_amount)}
-                      </div>
-                      {payment.pending_amount > 0 && (
-                        <div className="text-sm text-red-600">
-                          Pending: {formatCurrency(payment.pending_amount)}
-                        </div>
-                      )}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center">
-                      {getMethodIcon(payment.payment_method)}
-                      <div className="ml-2">
-                        <div className="text-sm text-gray-900 capitalize">
-                          {payment.payment_method.replace('_', ' ')}
-                        </div>
-                        {payment.transaction_id && (
-                          <div className="text-xs text-gray-500">
-                            TXN: {payment.transaction_id}
-                          </div>
-                        )}
+                      <div className="text-sm text-gray-500">
+                        Order: {payment.order_number || `#${payment.order_id}`}
                       </div>
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div>
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(payment.payment_status)}`}>
-                        {payment.payment_status.charAt(0).toUpperCase() + payment.payment_status.slice(1)}
+                    <div className="space-y-1">
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getMethodColor(payment.payment_method)}`}>
+                        {payment.payment_method.replace('_', ' ').toUpperCase()}
                       </span>
-                      {payment.due_date && (
-                        <div className="text-xs text-gray-500 mt-1">
-                          Due: {new Date(payment.due_date).toLocaleDateString('en-IN')}
-                        </div>
-                      )}
-                      {payment.payment_date && (
-                        <div className="text-xs text-gray-500">
-                          Paid: {new Date(payment.payment_date).toLocaleDateString('en-IN')}
-                        </div>
-                      )}
+                      <br />
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(payment.status)}`}>
+                        {payment.status.charAt(0).toUpperCase() + payment.status.slice(1)}
+                      </span>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="text-sm text-gray-900 font-medium">{formatCurrency(payment.amount)}</div>
+                    {payment.due_date && (
+                      <div className="text-sm text-gray-500">
+                        Due: {new Date(payment.due_date).toLocaleDateString('en-IN')}
+                      </div>
+                    )}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="text-sm text-gray-900">
+                      {new Date(payment.payment_date).toLocaleDateString('en-IN')}
+                    </div>
+                    <div className="text-sm text-gray-500">
+                      {new Date(payment.payment_date).toLocaleTimeString('en-IN', { 
+                        hour: '2-digit', 
+                        minute: '2-digit' 
+                      })}
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
@@ -569,22 +432,28 @@ export default function PaymentsPage() {
                         className="text-blue-600 hover:text-blue-900"
                         title="View Details"
                       >
-                        <DocumentTextIcon className="h-5 w-5" />
+                        <EyeIcon className="h-5 w-5" />
                       </button>
+                      
                       <button
-                        onClick={() => console.log('Print invoice', payment.id)}
+                        onClick={() => handleDownloadInvoice(payment.id)}
                         className="text-purple-600 hover:text-purple-900"
-                        title="Print Invoice"
+                        title="Download Invoice"
+                        disabled={downloadInvoiceMutation.isLoading}
                       >
-                        <PrinterIcon className="h-5 w-5" />
+                        <ArrowDownTrayIcon className="h-5 w-5" />
                       </button>
-                      {payment.payment_status === 'pending' && (
+                      
+                      {payment.status === 'completed' && (
                         <button
-                          onClick={() => setSelectedPayment(payment)}
-                          className="text-green-600 hover:text-green-900"
-                          title="Record Payment"
+                          onClick={() => {
+                            setSelectedPayment(payment);
+                            setShowRefundModal(true);
+                          }}
+                          className="text-red-600 hover:text-red-900"
+                          title="Process Refund"
                         >
-                          <CreditCardIcon className="h-5 w-5" />
+                          <ExclamationTriangleIcon className="h-5 w-5" />
                         </button>
                       )}
                     </div>
@@ -601,14 +470,14 @@ export default function PaymentsPage() {
         Showing {filteredPayments.length} of {payments.length} payments
       </div>
 
-      {/* Payment Details Modal Placeholder */}
-      {selectedPayment && (
+      {/* Payment Details Modal */}
+      {selectedPayment && !showRefundModal && (
         <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
           <div className="relative top-20 mx-auto p-5 border w-11/12 md:w-3/4 lg:w-1/2 shadow-lg rounded-md bg-white">
             <div className="mt-3">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-medium text-gray-900">
-                  Payment Details - {selectedPayment.invoice_number}
+                  Payment Details - #{selectedPayment.id}
                 </h3>
                 <button
                   onClick={() => setSelectedPayment(null)}
@@ -620,36 +489,20 @@ export default function PaymentsPage() {
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <h4 className="font-medium text-gray-900 mb-2">Customer Information</h4>
-                  <p className="text-sm text-gray-600">Name: {selectedPayment.customer_name}</p>
-                  <p className="text-sm text-gray-600">Phone: {selectedPayment.customer_phone}</p>
-                </div>
-                
-                <div>
                   <h4 className="font-medium text-gray-900 mb-2">Payment Information</h4>
+                  <p className="text-sm text-gray-600">Amount: {formatCurrency(selectedPayment.amount)}</p>
                   <p className="text-sm text-gray-600">Method: {selectedPayment.payment_method}</p>
-                  <p className="text-sm text-gray-600">Status: {selectedPayment.payment_status}</p>
+                  <p className="text-sm text-gray-600">Status: {selectedPayment.status}</p>
                   {selectedPayment.transaction_id && (
                     <p className="text-sm text-gray-600">Transaction ID: {selectedPayment.transaction_id}</p>
                   )}
                 </div>
-              </div>
-              
-              <div className="mt-6">
-                <h4 className="font-medium text-gray-900 mb-2">Amount Breakdown</h4>
-                <div className="space-y-2">
-                  <div className="flex justify-between">
-                    <span className="text-sm text-gray-600">Total Amount:</span>
-                    <span className="text-sm font-medium">{formatCurrency(selectedPayment.total_amount)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm text-gray-600">Paid Amount:</span>
-                    <span className="text-sm font-medium text-green-600">{formatCurrency(selectedPayment.paid_amount)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm text-gray-600">Pending Amount:</span>
-                    <span className="text-sm font-medium text-red-600">{formatCurrency(selectedPayment.pending_amount)}</span>
-                  </div>
+                
+                <div>
+                  <h4 className="font-medium text-gray-900 mb-2">Order Information</h4>
+                  <p className="text-sm text-gray-600">Order: {selectedPayment.order_number || `#${selectedPayment.order_id}`}</p>
+                  <p className="text-sm text-gray-600">Customer: {selectedPayment.customer_name}</p>
+                  <p className="text-sm text-gray-600">Date: {new Date(selectedPayment.payment_date).toLocaleString('en-IN')}</p>
                 </div>
               </div>
               
@@ -667,14 +520,13 @@ export default function PaymentsPage() {
                 >
                   Close
                 </button>
-                <button className="btn-secondary">
-                  Print Invoice
+                <button 
+                  onClick={() => handleDownloadInvoice(selectedPayment.id)}
+                  className="btn-primary"
+                  disabled={downloadInvoiceMutation.isLoading}
+                >
+                  Download Invoice
                 </button>
-                {selectedPayment.payment_status === 'pending' && (
-                  <button className="btn-primary">
-                    Record Payment
-                  </button>
-                )}
               </div>
             </div>
           </div>
