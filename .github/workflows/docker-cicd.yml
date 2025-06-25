@@ -27,6 +27,12 @@ jobs:
       - name: Login to Azure Container Registry
         run: az acr login --name jewelryshopacr01280
           
+      - name: Build Shared Library
+        run: |
+          cd shared
+          npm install
+          npm run build
+          
       - name: Build and Push Docker Image
         run: |
           cd services/order-management
