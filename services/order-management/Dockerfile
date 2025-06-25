@@ -12,7 +12,7 @@ COPY package*.json ./
 RUN npm install --omit=dev
 
 # Copy built shared library
-COPY ../../shared/dist ./node_modules/@jewelry-shop/shared/dist/
+COPY shared-dist ./node_modules/@jewelry-shop/shared/dist/
 
 # Copy source code
 COPY src ./src

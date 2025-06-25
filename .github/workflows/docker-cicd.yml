@@ -35,6 +35,9 @@ jobs:
           
       - name: Build and Push Docker Image
         run: |
+          # Copy shared dist to service directory for Docker context
+          cp -r shared/dist services/order-management/shared-dist/
+          
           cd services/order-management
           
           # Build image (Docker handles npm install internally)
