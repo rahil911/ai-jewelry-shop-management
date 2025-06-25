@@ -13,7 +13,7 @@ env:
 jobs:
   docker-build-deploy:
     runs-on: ubuntu-latest
-    if: contains(github.event.head_commit.message, 'order-management') || contains(github.event.head_commit.message, 'Order Management')
+    # Always run for Order Management changes
     
     steps:
       - name: Checkout code
