@@ -54,20 +54,17 @@ export default function PaymentsPage() {
   const downloadInvoiceMutation = useDownloadInvoice();
   const generateInvoiceMutation = useGenerateInvoice();
 
-  // Filter payments based on search (client-side filtering for better UX)
-  const filteredPayments = useMemo(() => {
-    return payments.filter(payment => {
-      if (filters.search) {
-        const searchLower = filters.search.toLowerCase();
-        return (
-          payment.order_number?.toLowerCase().includes(searchLower) ||
-          payment.customer_name?.toLowerCase().includes(searchLower) ||
-          payment.transaction_id?.toLowerCase().includes(searchLower)
-        );
-      }
-      return true;
-    });
-  }, [payments, filters.search]);
+  // Filter payments based on search - remove useMemo to fix render cycle violation
+  const filteredPayments = (payments || []).filter(payment => {
+    if (filters.search) {
+      const searchLower = filters.search.toLowerCase();
+      return (
+        payment.order_id?.toLowerCase().includes(searchLower) ||
+        payment.payment_id?.toLowerCase().includes(searchLower)
+      );
+    }
+    return true;
+  });
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-IN', {
@@ -223,7 +220,7 @@ export default function PaymentsPage() {
       <div className="card">
         <h3 className="text-lg font-medium text-gray-900 mb-4">Payment Methods</h3>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-          {paymentMethods?.map((method) => (
+          {(paymentMethods || []).map((method) => (
             <div key={method.method} className={`p-3 rounded-lg border ${method.enabled ? 'border-green-200 bg-green-50' : 'border-gray-200 bg-gray-50'}`}>
               <div className="text-sm font-medium text-gray-900 capitalize">
                 {method.method.replace('_', ' ')}
@@ -365,40 +362,31 @@ export default function PaymentsPage() {
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {filteredPayments.map((payment) => (
-                <tr key={payment.id} className="hover:bg-gray-50">
+                <tr key={payment.payment_id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div>
                       <div className="text-sm font-medium text-gray-900">
-                        Payment #{payment.id}
+                        Payment #{payment.payment_id}
                       </div>
-                      {payment.transaction_id && (
-                        <div className="text-sm text-gray-500">
-                          TXN: {payment.transaction_id}
-                        </div>
-                      )}
-                      {payment.notes && (
-                        <div className="text-xs text-gray-400 mt-1">
-                          {payment.notes.length > 30 
-                            ? `${payment.notes.substring(0, 30)}...` 
-                            : payment.notes}
-                        </div>
-                      )}
+                      <div className="text-sm text-gray-500">
+                        Order: {payment.order_id}
+                      </div>
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div>
                       <div className="text-sm font-medium text-gray-900">
-                        {payment.customer_name || 'Unknown Customer'}
+                        Order #{payment.order_id}
                       </div>
                       <div className="text-sm text-gray-500">
-                        Order: {payment.order_number || `#${payment.order_id}`}
+                        {payment.method.toUpperCase()} Payment
                       </div>
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="space-y-1">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getMethodColor(payment.payment_method)}`}>
-                        {payment.payment_method.replace('_', ' ').toUpperCase()}
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getMethodColor(payment.method)}`}>
+                        {payment.method.replace('_', ' ').toUpperCase()}
                       </span>
                       <br />
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(payment.status)}`}>
@@ -408,18 +396,13 @@ export default function PaymentsPage() {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm text-gray-900 font-medium">{formatCurrency(payment.amount)}</div>
-                    {payment.due_date && (
-                      <div className="text-sm text-gray-500">
-                        Due: {new Date(payment.due_date).toLocaleDateString('en-IN')}
-                      </div>
-                    )}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm text-gray-900">
-                      {new Date(payment.payment_date).toLocaleDateString('en-IN')}
+                      {new Date(payment.created_at).toLocaleDateString('en-IN')}
                     </div>
                     <div className="text-sm text-gray-500">
-                      {new Date(payment.payment_date).toLocaleTimeString('en-IN', { 
+                      {new Date(payment.created_at).toLocaleTimeString('en-IN', { 
                         hour: '2-digit', 
                         minute: '2-digit' 
                       })}
@@ -436,10 +419,10 @@ export default function PaymentsPage() {
                       </button>
                       
                       <button
-                        onClick={() => handleDownloadInvoice(payment.id)}
+                        onClick={() => handleDownloadInvoice(parseInt(payment.payment_id.replace('PAY-', '')))}
                         className="text-purple-600 hover:text-purple-900"
                         title="Download Invoice"
-                        disabled={downloadInvoiceMutation.isLoading}
+                        disabled={downloadInvoiceMutation.isPending}
                       >
                         <ArrowDownTrayIcon className="h-5 w-5" />
                       </button>
@@ -477,7 +460,7 @@ export default function PaymentsPage() {
             <div className="mt-3">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-medium text-gray-900">
-                  Payment Details - #{selectedPayment.id}
+                  Payment Details - #{selectedPayment.payment_id}
                 </h3>
                 <button
                   onClick={() => setSelectedPayment(null)}
@@ -491,7 +474,7 @@ export default function PaymentsPage() {
                 <div>
                   <h4 className="font-medium text-gray-900 mb-2">Payment Information</h4>
                   <p className="text-sm text-gray-600">Amount: {formatCurrency(selectedPayment.amount)}</p>
-                  <p className="text-sm text-gray-600">Method: {selectedPayment.payment_method}</p>
+                  <p className="text-sm text-gray-600">Method: {selectedPayment.method}</p>
                   <p className="text-sm text-gray-600">Status: {selectedPayment.status}</p>
                   {selectedPayment.transaction_id && (
                     <p className="text-sm text-gray-600">Transaction ID: {selectedPayment.transaction_id}</p>
@@ -502,7 +485,7 @@ export default function PaymentsPage() {
                   <h4 className="font-medium text-gray-900 mb-2">Order Information</h4>
                   <p className="text-sm text-gray-600">Order: {selectedPayment.order_number || `#${selectedPayment.order_id}`}</p>
                   <p className="text-sm text-gray-600">Customer: {selectedPayment.customer_name}</p>
-                  <p className="text-sm text-gray-600">Date: {new Date(selectedPayment.payment_date).toLocaleString('en-IN')}</p>
+                  <p className="text-sm text-gray-600">Date: {new Date(selectedPayment.created_at).toLocaleString('en-IN')}</p>
                 </div>
               </div>
               
@@ -521,9 +504,9 @@ export default function PaymentsPage() {
                   Close
                 </button>
                 <button 
-                  onClick={() => handleDownloadInvoice(selectedPayment.id)}
+                  onClick={() => handleDownloadInvoice(parseInt(selectedPayment.payment_id.replace('PAY-', '')))}
                   className="btn-primary"
-                  disabled={downloadInvoiceMutation.isLoading}
+                  disabled={downloadInvoiceMutation.isPending}
                 >
                   Download Invoice
                 </button>

@@ -45,7 +45,9 @@
       "mcp__playwright__browser_resize",
       "mcp__playwright__browser_generate_playwright_test",
       "Bash(echo:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(npx tsc:*)",
+      "Bash(git commit:*)"
     ],
     "deny": []
   }

@@ -1,4 +1,4 @@
-import { apiClient, type ApiResponse } from '../client';
+import { apiClient } from '../client';
 
 export interface OrderItem {
   id: number;
@@ -11,25 +11,22 @@ export interface OrderItem {
 }
 
 export interface JewelryOrder {
-  id: number;
-  order_number: string;
-  customer_id: number;
+  order_id: string;
   customer_name: string;
-  customer_phone: string;
-  staff_id: number;
-  staff_name: string;
-  status: 'pending' | 'confirmed' | 'in_progress' | 'completed' | 'cancelled';
-  order_type: 'sale' | 'repair' | 'custom';
-  subtotal: number;
-  making_charges: number;
-  wastage_amount: number;
-  gst_amount: number;
-  total_amount: number;
-  special_instructions?: string;
+  status: 'pending' | 'confirmed' | 'in_progress' | 'processing' | 'completed' | 'cancelled';
+  total: number;
+  // Additional fields for UI (will be undefined from Azure API)
+  order_number?: string;
+  customer_phone?: string;
+  order_type?: string;
+  items?: OrderItem[];
+  total_amount?: number;
+  subtotal?: number;
+  gst_amount?: number;
+  staff_name?: string;
+  created_at?: string;
   estimated_completion?: string;
-  created_at: string;
-  updated_at: string;
-  items: OrderItem[];
+  special_instructions?: string;
 }
 
 export interface CreateOrderRequest {
@@ -85,8 +82,8 @@ class OrderService {
     const queryString = params.toString();
     const url = queryString ? `${this.baseUrl}?${queryString}` : this.baseUrl;
     
-    const response = await apiClient.get<{ orders: JewelryOrder[] }>(url);
-    return response.orders || [];
+    const response = await apiClient.get<{ success: boolean; data: JewelryOrder[] }>(url);
+    return (response as any).data || [];
   }
 
   async getOrder(id: number): Promise<JewelryOrder> {
@@ -127,42 +124,10 @@ class OrderService {
   }
 
   async getOrderStats(): Promise<OrderStats> {
-    try {
-      const response = await apiClient.get<OrderStats>('/api/analytics/orders');
-      return response;
-    } catch (error) {
-      console.warn('Analytics endpoint failed, calculating from orders:', error);
-      // Fallback: calculate stats from orders list
-      const orders = await this.getOrders();
-      return this.calculateStatsFromOrders(orders);
-    }
+    const response = await apiClient.get<{ success: boolean; data: OrderStats }>('/api/analytics/orders');
+    return (response as any).data;
   }
 
-  private calculateStatsFromOrders(orders: JewelryOrder[]): OrderStats {
-    const today = new Date().toDateString();
-    
-    const ordersByStatus = orders.reduce((acc, order) => {
-      acc[order.status] = (acc[order.status] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
-
-    const ordersByType = orders.reduce((acc, order) => {
-      acc[order.order_type] = (acc[order.order_type] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
-
-    return {
-      total_orders: orders.length,
-      total_revenue: orders.reduce((sum, order) => sum + order.total_amount, 0),
-      pending_orders: orders.filter(order => order.status === 'pending').length,
-      completed_today: orders.filter(order => 
-        order.status === 'completed' && 
-        new Date(order.updated_at).toDateString() === today
-      ).length,
-      orders_by_status: ordersByStatus,
-      orders_by_type: ordersByType
-    };
-  }
 }
 
 export const orderService = new OrderService();

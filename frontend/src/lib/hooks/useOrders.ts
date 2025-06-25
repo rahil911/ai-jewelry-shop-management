@@ -62,7 +62,7 @@ export function useUpdateOrder() {
     onSuccess: (updatedOrder) => {
       // Update the specific order in cache
       queryClient.setQueryData(
-        orderKeys.detail(updatedOrder.id),
+        orderKeys.detail(parseInt(updatedOrder.order_id.replace('ORD-', ''))),
         updatedOrder
       );
       
@@ -90,8 +90,8 @@ export function useUpdateOrderStatus() {
       queryClient.setQueriesData({ queryKey: orderKeys.lists() }, (old: JewelryOrder[] | undefined) => {
         if (!old) return old;
         return old.map(order =>
-          order.id === id
-            ? { ...order, status: status as any, updated_at: new Date().toISOString() }
+          parseInt(order.order_id.replace('ORD-', '')) === id
+            ? { ...order, status: status as any }
             : order
         );
       });

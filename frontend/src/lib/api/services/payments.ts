@@ -1,21 +1,17 @@
 import { apiClient } from '../client';
 
 export interface Payment {
-  id: number;
-  order_id: number;
-  customer_id: number;
+  payment_id: string;
+  order_id: string;
   amount: number;
-  payment_method: PaymentMethod;
   status: PaymentStatus;
+  method: PaymentMethod;
+  created_at: string;
+  // Additional fields for UI (may not be in Azure API response)
   transaction_id?: string;
-  gateway_response?: any;
-  payment_date: string;
-  due_date?: string;
-  notes?: string;
-  created_by: number;
-  invoice_generated: boolean;
-  order_number?: string;
   customer_name?: string;
+  order_number?: string;
+  notes?: string;
 }
 
 export type PaymentMethod = 'cash' | 'card' | 'upi' | 'bank_transfer' | 'gold_exchange' | 'emi';
@@ -102,8 +98,8 @@ class PaymentService {
     const queryString = params.toString();
     const url = queryString ? `${this.baseUrl}?${queryString}` : this.baseUrl;
     
-    const response = await apiClient.get<{ payments: Payment[] }>(url);
-    return response.payments || [];
+    const response = await apiClient.get<{ success: boolean; data: Payment[] }>(url);
+    return (response as any).data || [];
   }
 
   async getPayment(id: number): Promise<Payment> {
@@ -127,19 +123,8 @@ class PaymentService {
   }
 
   async getPaymentMethods(): Promise<{ method: PaymentMethod; enabled: boolean; description: string }[]> {
-    try {
-      return await apiClient.get<{ method: PaymentMethod; enabled: boolean; description: string }[]>(`${this.baseUrl}/methods`);
-    } catch (error) {
-      // Fallback to default payment methods
-      return [
-        { method: 'cash', enabled: true, description: 'Cash Payment' },
-        { method: 'card', enabled: true, description: 'Credit/Debit Card' },
-        { method: 'upi', enabled: true, description: 'UPI Payment' },
-        { method: 'bank_transfer', enabled: true, description: 'Bank Transfer' },
-        { method: 'gold_exchange', enabled: true, description: 'Gold Exchange' },
-        { method: 'emi', enabled: false, description: 'EMI (Coming Soon)' }
-      ];
-    }
+    const response = await apiClient.get<{ success: boolean; data: { method: PaymentMethod; enabled: boolean; description: string }[] }>(`${this.baseUrl}/methods`);
+    return (response as any).data || [];
   }
 
   async generateInvoice(orderId: number): Promise<Invoice> {
@@ -155,56 +140,10 @@ class PaymentService {
   }
 
   async getPaymentStats(): Promise<PaymentStats> {
-    try {
-      const response = await apiClient.get<PaymentStats>('/api/analytics/payments');
-      return response;
-    } catch (error) {
-      console.warn('Analytics endpoint failed, calculating from payments:', error);
-      // Fallback: calculate stats from payments list
-      const payments = await this.getPayments();
-      return this.calculateStatsFromPayments(payments);
-    }
+    const response = await apiClient.get<{ success: boolean; data: PaymentStats }>('/api/analytics/payments');
+    return (response as any).data;
   }
 
-  private calculateStatsFromPayments(payments: Payment[]): PaymentStats {
-    const today = new Date().toDateString();
-    const currentMonth = new Date().getMonth();
-    const currentYear = new Date().getFullYear();
-    
-    const paymentsByMethod = payments.reduce((acc, payment) => {
-      acc[payment.payment_method] = (acc[payment.payment_method] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
-
-    const paymentsByStatus = payments.reduce((acc, payment) => {
-      acc[payment.status] = (acc[payment.status] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
-
-    const monthlyRevenue = payments
-      .filter(payment => {
-        const paymentDate = new Date(payment.payment_date);
-        return payment.status === 'completed' &&
-               paymentDate.getMonth() === currentMonth &&
-               paymentDate.getFullYear() === currentYear;
-      })
-      .reduce((sum, payment) => sum + payment.amount, 0);
-
-    return {
-      total_payments: payments.length,
-      total_amount: payments.reduce((sum, payment) => 
-        payment.status === 'completed' ? sum + payment.amount : sum, 0
-      ),
-      pending_payments: payments.filter(payment => payment.status === 'pending').length,
-      completed_today: payments.filter(payment => 
-        payment.status === 'completed' && 
-        new Date(payment.payment_date).toDateString() === today
-      ).length,
-      payments_by_method: paymentsByMethod,
-      payments_by_status: paymentsByStatus,
-      monthly_revenue: monthlyRevenue
-    };
-  }
 
   // Gateway Integration Methods
   async initiateRazorpayPayment(paymentData: {

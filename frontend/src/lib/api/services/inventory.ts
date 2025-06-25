@@ -177,7 +177,15 @@ class InventoryService {
   async getInventoryStats(): Promise<InventoryStats> {
     try {
       // Use the real analytics endpoint
-      const response = await apiClient.get('/api/analytics/inventory');
+      const response = await apiClient.get<{
+        success: boolean;
+        data: {
+          total_items: number;
+          total_value: number;
+          low_stock_items: number;
+          categories: Record<string, number>;
+        };
+      }>('/api/analytics/inventory');
       
       if (response.success && response.data) {
         const data = response.data;
@@ -185,7 +193,10 @@ class InventoryService {
           total_items: data.total_items,
           total_value: data.total_value,
           low_stock_count: data.low_stock_items,
-          categories: data.categories || {},
+          categories: Object.entries(data.categories || {}).reduce((acc, [key, count]) => ({
+            ...acc,
+            [key]: { count, value: 0 }
+          }), {} as { [key: string]: { count: number; value: number; } }),
           metal_breakdown: {} // Analytics doesn't provide this, calculate if needed
         };
       }

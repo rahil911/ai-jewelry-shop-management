@@ -25,7 +25,7 @@ export function usePayments(filters?: PaymentFilters) {
     queryKey: paymentKeys.list(filters),
     queryFn: () => paymentService.getPayments(filters),
     staleTime: 2 * 60 * 1000, // 2 minutes
-    refetchInterval: 30 * 1000, // Refetch every 30 seconds for real-time updates
+    refetchInterval: false, // Disable auto-refetch to prevent render issues
   });
 }
 
@@ -43,7 +43,7 @@ export function usePaymentStats() {
     queryKey: paymentKeys.stats(),
     queryFn: () => paymentService.getPaymentStats(),
     staleTime: 60 * 1000, // 1 minute  
-    refetchInterval: 5 * 60 * 1000, // Refetch every 5 minutes
+    refetchInterval: false, // Disable auto-refetch to prevent render issues
   });
 }
 
@@ -78,7 +78,7 @@ export function useUpdatePayment() {
     onSuccess: (updatedPayment) => {
       // Update the specific payment in cache
       queryClient.setQueryData(
-        paymentKeys.detail(updatedPayment.id),
+        paymentKeys.detail(parseInt(updatedPayment.payment_id.replace('PAY-', ''))),
         updatedPayment
       );
       
@@ -110,7 +110,7 @@ export function useProcessRefund() {
     onSuccess: (updatedPayment) => {
       // Update the specific payment in cache
       queryClient.setQueryData(
-        paymentKeys.detail(updatedPayment.id),
+        paymentKeys.detail(parseInt(updatedPayment.payment_id.replace('PAY-', ''))),
         updatedPayment
       );
       

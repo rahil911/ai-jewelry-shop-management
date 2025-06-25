@@ -1,0 +1,505 @@
+'use client';
+
+import { useState } from 'react';
+import { 
+  PlusIcon, 
+  MagnifyingGlassIcon, 
+  DocumentTextIcon,
+  EyeIcon,
+  PencilIcon,
+  CheckCircleIcon,
+  ClockIcon,
+  XCircleIcon,
+  PrinterIcon,
+  CreditCardIcon,
+  UserIcon
+} from '@heroicons/react/24/outline';
+import { useAuth } from '@/lib/hooks/useAuth';
+import { useOrders, useOrderStats, useUpdateOrderStatus, useGenerateInvoice } from '@/lib/hooks/useOrders';
+import type { JewelryOrder, OrderFilters } from '@/lib/api/services/orders';
+
+export default function OrdersPage() {
+  const { user } = useAuth();
+  const [filters, setFilters] = useState<OrderFilters>({
+    search: '',
+    status: '',
+    order_type: '',
+    date_from: '',
+    date_to: ''
+  });
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [selectedOrder, setSelectedOrder] = useState<JewelryOrder | null>(null);
+  
+  // React Query hooks for data fetching
+  const { data: orders = [], isLoading, error } = useOrders(filters);
+  const { data: orderStats } = useOrderStats();
+  const updateOrderStatusMutation = useUpdateOrderStatus();
+  const generateInvoiceMutation = useGenerateInvoice();
+
+  // Filter orders based on search (client-side filtering for better UX)
+  const filteredOrders = orders.filter(order => {
+    if (filters.search) {
+      const searchLower = filters.search.toLowerCase();
+      return (
+        order.order_id.toLowerCase().includes(searchLower) ||
+        order.customer_name.toLowerCase().includes(searchLower)
+      );
+    }
+    return true;
+  });
+
+  const updateOrderStatus = (orderId: number, newStatus: string) => {
+    updateOrderStatusMutation.mutate({ id: orderId, status: newStatus });
+  };
+  
+  const handleGenerateInvoice = (orderId: number) => {
+    generateInvoiceMutation.mutate(orderId);
+  };
+  
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-IN', {
+      style: 'currency',
+      currency: 'INR',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(amount);
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'pending': return 'text-yellow-600 bg-yellow-100';
+      case 'confirmed': return 'text-blue-600 bg-blue-100';
+      case 'in_progress': return 'text-purple-600 bg-purple-100';
+      case 'completed': return 'text-green-600 bg-green-100';
+      case 'cancelled': return 'text-red-600 bg-red-100';
+      default: return 'text-gray-600 bg-gray-100';
+    }
+  };
+
+  const getOrderTypeColor = (type: string) => {
+    switch (type) {
+      case 'sale': return 'text-green-600 bg-green-100';
+      case 'repair': return 'text-yellow-600 bg-yellow-100';
+      case 'custom': return 'text-purple-600 bg-purple-100';
+      default: return 'text-gray-600 bg-gray-100';
+    }
+  };
+  
+  if (error) {
+    return (
+      <div className="text-center py-12">
+        <div className="text-red-600 mb-4">Failed to load orders</div>
+        <button 
+          onClick={() => window.location.reload()} 
+          className="btn-primary"
+        >
+          Retry
+        </button>
+      </div>
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div className="skeleton h-8 w-48"></div>
+          <div className="skeleton h-10 w-32"></div>
+        </div>
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="card">
+              <div className="skeleton h-6 w-24 mb-4"></div>
+              <div className="skeleton h-8 w-32 mb-2"></div>
+              <div className="skeleton h-4 w-20"></div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Order Management</h1>
+          <p className="mt-1 text-sm text-gray-500">
+            Manage orders, track progress, and generate invoices
+          </p>
+        </div>
+        <div className="flex space-x-3">
+          <button
+            onClick={() => setShowCreateModal(true)}
+            className="btn-primary flex items-center"
+          >
+            <PlusIcon className="h-5 w-5 mr-2" />
+            Create Order
+          </button>
+          <button className="btn-secondary flex items-center">
+            <DocumentTextIcon className="h-5 w-5 mr-2" />
+            Bulk Export
+          </button>
+        </div>
+      </div>
+
+      {/* Order Stats */}
+      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="card">
+          <div className="flex items-center">
+            <div className="flex-shrink-0">
+              <DocumentTextIcon className="h-6 w-6 text-blue-600" />
+            </div>
+            <div className="ml-5">
+              <div className="text-sm font-medium text-gray-500">Total Orders</div>
+              <div className="text-2xl font-bold text-gray-900">{orderStats?.total_orders || 0}</div>
+            </div>
+          </div>
+        </div>
+
+        <div className="card">
+          <div className="flex items-center">
+            <div className="flex-shrink-0">
+              <CreditCardIcon className="h-6 w-6 text-green-600" />
+            </div>
+            <div className="ml-5">
+              <div className="text-sm font-medium text-gray-500">Total Revenue</div>
+              <div className="text-2xl font-bold text-gray-900">{formatCurrency(orderStats?.total_revenue || 0)}</div>
+            </div>
+          </div>
+        </div>
+
+        <div className="card">
+          <div className="flex items-center">
+            <div className="flex-shrink-0">
+              <ClockIcon className="h-6 w-6 text-yellow-600" />
+            </div>
+            <div className="ml-5">
+              <div className="text-sm font-medium text-gray-500">Pending Orders</div>
+              <div className="text-2xl font-bold text-gray-900">{orderStats?.pending_orders || 0}</div>
+            </div>
+          </div>
+        </div>
+
+        <div className="card">
+          <div className="flex items-center">
+            <div className="flex-shrink-0">
+              <CheckCircleIcon className="h-6 w-6 text-green-600" />
+            </div>
+            <div className="ml-5">
+              <div className="text-sm font-medium text-gray-500">Completed Today</div>
+              <div className="text-2xl font-bold text-gray-900">{orderStats?.completed_today || 0}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Filters */}
+      <div className="card">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-6">
+          <div>
+            <label htmlFor="search" className="block text-sm font-medium text-gray-700 mb-2">
+              Search
+            </label>
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" />
+              </div>
+              <input
+                type="text"
+                id="search"
+                value={filters.search}
+                onChange={(e) => setFilters({...filters, search: e.target.value})}
+                className="input-field pl-10"
+                placeholder="Order number, customer..."
+              />
+            </div>
+          </div>
+
+          <div>
+            <label htmlFor="status" className="block text-sm font-medium text-gray-700 mb-2">
+              Status
+            </label>
+            <select
+              id="status"
+              value={filters.status}
+              onChange={(e) => setFilters({...filters, status: e.target.value})}
+              className="input-field"
+            >
+              <option value="">All Status</option>
+              <option value="pending">Pending</option>
+              <option value="confirmed">Confirmed</option>
+              <option value="in_progress">In Progress</option>
+              <option value="completed">Completed</option>
+              <option value="cancelled">Cancelled</option>
+            </select>
+          </div>
+
+          <div>
+            <label htmlFor="order_type" className="block text-sm font-medium text-gray-700 mb-2">
+              Order Type
+            </label>
+            <select
+              id="order_type"
+              value={filters.order_type}
+              onChange={(e) => setFilters({...filters, order_type: e.target.value})}
+              className="input-field"
+            >
+              <option value="">All Types</option>
+              <option value="sale">Sale</option>
+              <option value="repair">Repair</option>
+              <option value="custom">Custom</option>
+            </select>
+          </div>
+
+          <div>
+            <label htmlFor="date_from" className="block text-sm font-medium text-gray-700 mb-2">
+              From Date
+            </label>
+            <input
+              type="date"
+              id="date_from"
+              value={filters.date_from}
+              onChange={(e) => setFilters({...filters, date_from: e.target.value})}
+              className="input-field"
+            />
+          </div>
+
+          <div>
+            <label htmlFor="date_to" className="block text-sm font-medium text-gray-700 mb-2">
+              To Date
+            </label>
+            <input
+              type="date"
+              id="date_to"
+              value={filters.date_to}
+              onChange={(e) => setFilters({...filters, date_to: e.target.value})}
+              className="input-field"
+            />
+          </div>
+
+          <div className="flex items-end">
+            <button
+              onClick={() => setFilters({search: '', status: '', order_type: '', date_from: '', date_to: ''})}
+              className="btn-outline w-full"
+            >
+              Clear Filters
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Orders Table */}
+      <div className="card overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Order Details
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Customer
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Type & Status
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Amount
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Timeline
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Actions
+                </th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {filteredOrders.map((order) => (
+                <tr key={order.order_id} className="hover:bg-gray-50">
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div>
+                      <div className="text-sm font-medium text-gray-900">{order.order_id}</div>
+                      <div className="text-sm text-gray-500">
+                        Order Details
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="flex items-center">
+                      <UserIcon className="h-8 w-8 text-gray-400 mr-3" />
+                      <div>
+                        <div className="text-sm font-medium text-gray-900">{order.customer_name}</div>
+                        <div className="text-sm text-gray-500">Customer</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="space-y-1">
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium text-blue-600 bg-blue-100">
+                        Sale
+                      </span>
+                      <br />
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(order.status)}`}>
+                        {order.status.replace('_', ' ').charAt(0).toUpperCase() + order.status.replace('_', ' ').slice(1)}
+                      </span>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="text-sm text-gray-900 font-medium">{formatCurrency(order.total)}</div>
+                    <div className="text-sm text-gray-500">
+                      Total Amount
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="text-sm text-gray-900">
+                      Status: {order.status}
+                    </div>
+                    <div className="text-sm text-gray-500">
+                      Order ID: {order.order_id}
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                    <div className="flex flex-col space-y-2">
+                      <div className="flex space-x-2">
+                        <button
+                          onClick={() => setSelectedOrder(order)}
+                          className="text-blue-600 hover:text-blue-900"
+                          title="View Details"
+                        >
+                          <EyeIcon className="h-5 w-5" />
+                        </button>
+                        <button
+                          onClick={() => setSelectedOrder(order)}
+                          className="text-yellow-600 hover:text-yellow-900"
+                          title="Edit Order"
+                        >
+                          <PencilIcon className="h-5 w-5" />
+                        </button>
+                        <button
+                          onClick={() => handleGenerateInvoice(parseInt(order.order_id.replace('ORD-', '')))
+                          className="text-purple-600 hover:text-purple-900"
+                          title="Generate Invoice"
+                          disabled={generateInvoiceMutation.isPending}
+                        >
+                          <PrinterIcon className="h-5 w-5" />
+                        </button>
+                      </div>
+                      
+                      {/* Quick Status Updates */}
+                      {order.status === 'pending' && (
+                        <button
+                          onClick={() => updateOrderStatus(parseInt(order.order_id.replace('ORD-', '')), 'confirmed')
+                          className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full hover:bg-blue-200"
+                          disabled={updateOrderStatusMutation.isPending}
+                        >
+                          Confirm
+                        </button>
+                      )}
+                      
+                      {order.status === 'confirmed' && (
+                        <button
+                          onClick={() => updateOrderStatus(parseInt(order.order_id.replace('ORD-', '')), 'in_progress')
+                          className="text-xs bg-purple-100 text-purple-800 px-2 py-1 rounded-full hover:bg-purple-200"
+                          disabled={updateOrderStatusMutation.isPending}
+                        >
+                          Start Work
+                        </button>
+                      )}
+                      
+                      {order.status === 'in_progress' && (
+                        <button
+                          onClick={() => updateOrderStatus(parseInt(order.order_id.replace('ORD-', '')), 'completed')
+                          className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full hover:bg-green-200"
+                          disabled={updateOrderStatusMutation.isPending}
+                        >
+                          Complete
+                        </button>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Results Summary */}
+      <div className="text-sm text-gray-500 text-center">
+        Showing {filteredOrders.length} of {orders.length} orders
+      </div>
+
+      {/* Order Details Modal */}
+      {selectedOrder && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+          <div className="relative top-20 mx-auto p-5 border w-11/12 md:w-3/4 lg:w-1/2 shadow-lg rounded-md bg-white">
+            <div className="mt-3">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-medium text-gray-900">
+                  Order Details - {selectedOrder.order_id}
+                </h3>
+                <button
+                  onClick={() => setSelectedOrder(null)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <XCircleIcon className="h-6 w-6" />
+                </button>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <h4 className="font-medium text-gray-900 mb-2">Customer Information</h4>
+                  <p className="text-sm text-gray-600">Name: {selectedOrder.customer_name}</p>
+                  <p className="text-sm text-gray-600">Order ID: {selectedOrder.order_id}</p>
+                </div>
+                
+                <div>
+                  <h4 className="font-medium text-gray-900 mb-2">Order Information</h4>
+                  <p className="text-sm text-gray-600">Type: Sale</p>
+                  <p className="text-sm text-gray-600">Status: {selectedOrder.status}</p>
+                  <p className="text-sm text-gray-600">Total: {formatCurrency(selectedOrder.total)}</p>
+                </div>
+              </div>
+              
+              <div className="mt-6">
+                <h4 className="font-medium text-gray-900 mb-2">Order Items</h4>
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center p-2 bg-gray-50 rounded">
+                    <span className="text-sm">Order Total</span>
+                    <span className="text-sm font-medium">{formatCurrency(selectedOrder.total)}</span>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="mt-6 border-t pt-4">
+                <div className="flex justify-between items-center">
+                  <span className="text-lg font-medium">Total Amount:</span>
+                  <span className="text-lg font-bold text-green-600">{formatCurrency(selectedOrder.total)}</span>
+                </div>
+              </div>
+              
+              <div className="mt-6 flex justify-end space-x-3">
+                <button
+                  onClick={() => setSelectedOrder(null)}
+                  className="btn-outline"
+                >
+                  Close
+                </button>
+                <button 
+                  onClick={() => handleGenerateInvoice(parseInt(selectedOrder.order_id.replace('ORD-', '')))
+                  className="btn-primary"
+                  disabled={generateInvoiceMutation.isPending}
+                >
+                  Print Invoice
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
