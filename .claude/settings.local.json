@@ -47,7 +47,11 @@
       "Bash(echo:*)",
       "Bash(git add:*)",
       "Bash(npx tsc:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(ssh:*)",
+      "Bash(bash:*)",
+      "mcp__playwright__browser_wait_for",
+      "mcp__playwright__browser_handle_dialog"
     ],
     "deny": []
   }

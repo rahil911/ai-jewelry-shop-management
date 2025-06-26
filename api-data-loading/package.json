@@ -1,0 +1,21 @@
+{
+  "name": "jewelry-shop-api-data-loading",
+  "version": "1.0.0",
+  "description": "API-based data loading for Jewelry Shop Management System demo",
+  "scripts": {
+    "load-all": "node run-all-api.js",
+    "load-users": "node scripts/01-load-users-api.js",
+    "load-inventory": "node scripts/02-load-inventory-api.js",
+    "load-pricing": "node scripts/03-load-pricing-api.js",
+    "load-orders": "node scripts/04-load-orders-api.js",
+    "verify": "node scripts/99-verify-api.js"
+  },
+  "dependencies": {
+    "axios": "^1.6.0",
+    "chalk": "^4.1.2",
+    "progress": "^2.0.3",
+    "uuid": "^9.0.0"
+  },
+  "author": "Claude Code AI Assistant",
+  "license": "MIT"
+}

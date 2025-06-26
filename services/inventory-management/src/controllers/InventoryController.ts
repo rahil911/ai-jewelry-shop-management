@@ -56,8 +56,14 @@ export class InventoryController {
       
       if (search) {
         paramCount++;
-        query += ` AND (ji.name ILIKE $${paramCount} OR ji.sku ILIKE $${paramCount} OR ji.barcode ILIKE $${paramCount})`;
-        params.push(`%${search}%`);
+        const searchParam = paramCount;
+        paramCount++;
+        const searchParam2 = paramCount;
+        paramCount++;
+        const searchParam3 = paramCount;
+        query += ` AND (ji.name ILIKE $${searchParam} OR ji.sku ILIKE $${searchParam2} OR ji.barcode ILIKE $${searchParam3})`;
+        const searchTerm = `%${search.toLowerCase()}%`;
+        params.push(searchTerm, searchTerm, searchTerm);
       }
       
       if (category) {

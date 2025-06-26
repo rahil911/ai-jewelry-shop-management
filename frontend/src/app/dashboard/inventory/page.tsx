@@ -18,6 +18,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { inventoryService, type JewelryItem, type InventoryStats, type InventoryFilters as ApiInventoryFilters } from '@/lib/api/services/inventory';
 import { useCurrentGoldRates } from '@/lib/hooks/usePricing';
 import { toast } from 'react-hot-toast';
+import AddItemModal from '@/components/inventory/AddItemModal';
 
 // Extending the API type for local UI state
 interface LocalJewelryItem extends JewelryItem {
@@ -618,6 +619,13 @@ export default function InventoryPage() {
           </div>
         </div>
       )}
+
+      {/* Add Item Modal */}
+      <AddItemModal
+        isOpen={showAddModal}
+        onClose={() => setShowAddModal(false)}
+        onSuccess={() => refetch()}
+      />
     </div>
   );
 }

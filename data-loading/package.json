@@ -1,0 +1,41 @@
+{
+  "name": "jewelry-shop-data-loading",
+  "version": "1.0.0",
+  "description": "Data loading scripts for Jewelry Shop Management System demo",
+  "main": "run-all.js",
+  "scripts": {
+    "load-all": "node run-all.js",
+    "load-users": "node scripts/01-load-users.js",
+    "load-inventory": "node scripts/02-load-inventory.js",
+    "load-pricing": "node scripts/03-load-pricing.js",
+    "load-orders": "node scripts/04-load-orders.js",
+    "load-payments": "node scripts/05-load-payments.js",
+    "load-images": "node scripts/06-load-images.js",
+    "load-analytics": "node scripts/07-load-analytics.js",
+    "load-notifications": "node scripts/08-load-notifications.js",
+    "verify": "node scripts/99-verify-data.js",
+    "clear": "node clear-all.js"
+  },
+  "dependencies": {
+    "pg": "^8.11.3",
+    "axios": "^1.6.2",
+    "bcrypt": "^5.1.1",
+    "uuid": "^9.0.1",
+    "dotenv": "^16.3.1",
+    "faker": "^5.5.3",
+    "chalk": "^4.1.2",
+    "progress": "^2.0.3"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "keywords": [
+    "jewelry",
+    "management",
+    "data-loading",
+    "demo",
+    "postgresql"
+  ],
+  "author": "Jewelry Shop Development Team",
+  "license": "MIT"
+}

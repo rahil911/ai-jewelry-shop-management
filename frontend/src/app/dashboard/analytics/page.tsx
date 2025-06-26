@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { 
   ChartBarIcon,
   CurrencyDollarIcon,
@@ -13,151 +13,42 @@ import {
   DocumentChartBarIcon,
   ArrowDownTrayIcon,
   PrinterIcon,
-  FunnelIcon
+  FunnelIcon,
+  ArrowPathIcon,
+  ClockIcon,
+  ExclamationTriangleIcon
 } from '@heroicons/react/24/outline';
 import { useAuth } from '@/lib/auth/AuthContext';
-
-interface SalesData {
-  date: string;
-  revenue: number;
-  orders: number;
-  customers: number;
-}
-
-interface CategoryPerformance {
-  category: string;
-  revenue: number;
-  orders: number;
-  percentage: number;
-}
-
-interface MetalTypeData {
-  metal: string;
-  weight: number;
-  value: number;
-  percentage: number;
-}
-
-interface AnalyticsStats {
-  totalRevenue: number;
-  revenueGrowth: number;
-  totalOrders: number;
-  ordersGrowth: number;
-  averageOrderValue: number;
-  aovGrowth: number;
-  customerRetention: number;
-  retentionGrowth: number;
-}
-
-interface DateFilters {
-  period: string;
-  custom_from: string;
-  custom_to: string;
-}
+import { 
+  useAnalyticsDashboard, 
+  useRealTimeMetrics,
+  useAnalyticsActions 
+} from '@/lib/hooks/useAnalytics';
+import { AnalyticsFilters } from '@/lib/api/services/analytics';
 
 export default function AnalyticsPage() {
   const { user } = useAuth();
-  const [isLoading, setIsLoading] = useState(true);
-  const [filters, setFilters] = useState<DateFilters>({
+  const [filters, setFilters] = useState<AnalyticsFilters>({
     period: 'last_30_days',
     custom_from: '',
     custom_to: ''
   });
   
-  const [analyticsStats, setAnalyticsStats] = useState<AnalyticsStats>({
-    totalRevenue: 0,
-    revenueGrowth: 0,
-    totalOrders: 0,
-    ordersGrowth: 0,
-    averageOrderValue: 0,
-    aovGrowth: 0,
-    customerRetention: 0,
-    retentionGrowth: 0
-  });
+  // Real-time analytics data with live updates
+  const analytics = useAnalyticsDashboard(filters);
+  const realTimeMetrics = useRealTimeMetrics();
+  const { refreshAll, exportReport, isExporting } = useAnalyticsActions();
 
-  const [salesData, setSalesData] = useState<SalesData[]>([]);
-  const [categoryPerformance, setCategoryPerformance] = useState<CategoryPerformance[]>([]);
-  const [metalTypeData, setMetalTypeData] = useState<MetalTypeData[]>([]);
-  const [topCustomers, setTopCustomers] = useState<any[]>([]);
-
-  useEffect(() => {
-    fetchAnalyticsData();
-  }, [filters]);
-
-  const fetchAnalyticsData = async () => {
-    try {
-      // In a real implementation, this would call the analytics API
-      // For now, using mock data
-      setTimeout(() => {
-        // Mock analytics stats
-        const stats: AnalyticsStats = {
-          totalRevenue: 2850000,
-          revenueGrowth: 15.2,
-          totalOrders: 156,
-          ordersGrowth: 8.7,
-          averageOrderValue: 18269,
-          aovGrowth: 6.1,
-          customerRetention: 72.5,
-          retentionGrowth: 4.2
-        };
-        setAnalyticsStats(stats);
-
-        // Mock sales data (last 30 days)
-        const sales: SalesData[] = [
-          { date: '2024-01-01', revenue: 95000, orders: 5, customers: 4 },
-          { date: '2024-01-02', revenue: 125000, orders: 7, customers: 6 },
-          { date: '2024-01-03', revenue: 87000, orders: 4, customers: 4 },
-          { date: '2024-01-04', revenue: 156000, orders: 9, customers: 8 },
-          { date: '2024-01-05', revenue: 78000, orders: 3, customers: 3 },
-          { date: '2024-01-06', revenue: 142000, orders: 8, customers: 7 },
-          { date: '2024-01-07', revenue: 98000, orders: 5, customers: 5 },
-          { date: '2024-01-08', revenue: 189000, orders: 11, customers: 9 },
-          { date: '2024-01-09', revenue: 76000, orders: 4, customers: 4 },
-          { date: '2024-01-10', revenue: 134000, orders: 7, customers: 6 },
-          { date: '2024-01-11', revenue: 167000, orders: 9, customers: 8 },
-          { date: '2024-01-12', revenue: 92000, orders: 5, customers: 5 },
-          { date: '2024-01-13', revenue: 145000, orders: 8, customers: 7 },
-          { date: '2024-01-14', revenue: 83000, orders: 4, customers: 4 },
-          { date: '2024-01-15', revenue: 198000, orders: 12, customers: 10 }
-        ];
-        setSalesData(sales);
-
-        // Mock category performance
-        const categories: CategoryPerformance[] = [
-          { category: 'Necklaces', revenue: 1250000, orders: 65, percentage: 43.8 },
-          { category: 'Earrings', revenue: 680000, orders: 42, percentage: 23.9 },
-          { category: 'Rings', revenue: 520000, orders: 28, percentage: 18.2 },
-          { category: 'Bracelets', revenue: 280000, orders: 15, percentage: 9.8 },
-          { category: 'Bangles', revenue: 120000, orders: 6, percentage: 4.2 }
-        ];
-        setCategoryPerformance(categories);
-
-        // Mock metal type data
-        const metals: MetalTypeData[] = [
-          { metal: '22K Gold', weight: 2850.5, value: 1890000, percentage: 66.3 },
-          { metal: '18K Gold', weight: 1420.8, value: 720000, percentage: 25.3 },
-          { metal: 'Silver 925', weight: 890.2, value: 180000, percentage: 6.3 },
-          { metal: 'Platinum', weight: 125.6, value: 60000, percentage: 2.1 }
-        ];
-        setMetalTypeData(metals);
-
-        // Mock top customers
-        const customers = [
-          { name: 'Priya Sharma', orders: 8, spent: 850000, lastPurchase: '2024-01-23' },
-          { name: 'Anita Patel', orders: 15, spent: 1250000, lastPurchase: '2024-01-20' },
-          { name: 'Meera Reddy', orders: 5, spent: 425000, lastPurchase: '2024-01-10' },
-          { name: 'Rahul Gupta', orders: 12, spent: 950000, lastPurchase: '2023-12-20' },
-          { name: 'Vikram Singh', orders: 3, spent: 185000, lastPurchase: '2024-01-15' }
-        ];
-        setTopCustomers(customers);
-
-        setIsLoading(false);
-      }, 1000);
-    } catch (error) {
-      console.error('Failed to fetch analytics data:', error);
-      setIsLoading(false);
-    }
-  };
+  // Auto-refresh indicator
+  const [lastRefresh, setLastRefresh] = useState(new Date());
+  
+  React.useEffect(() => {
+    const interval = setInterval(() => {
+      setLastRefresh(new Date());
+    }, 30000); // Update every 30 seconds
+    
+    return () => clearInterval(interval);
+  }, []);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-IN', {
@@ -180,7 +71,15 @@ export default function AnalyticsPage() {
     return growth >= 0 ? TrendingUpIcon : TrendingDownIcon;
   };
 
-  if (isLoading) {
+  const handleExportReport = (format: 'pdf' | 'excel') => {
+    exportReport({ filters, format });
+  };
+
+  const handleApplyFilter = () => {
+    analytics.refetchAll();
+  };
+
+  if (analytics.isLoading) {
     return (
       <div className="space-y-6">
         <div className="flex items-center justify-between">
@@ -202,23 +101,84 @@ export default function AnalyticsPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
+      {/* Header with Real-time Updates */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Analytics & Reports</h1>
+          <div className="flex items-center space-x-3">
+            <h1 className="text-2xl font-bold text-gray-900">Analytics & Reports</h1>
+            {realTimeMetrics.isLoading ? (
+              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
+            ) : (
+              <div className="flex items-center text-sm text-green-600">
+                <div className="w-2 h-2 bg-green-600 rounded-full mr-2 animate-pulse"></div>
+                Live Data
+              </div>
+            )}
+          </div>
           <p className="mt-1 text-sm text-gray-500">
-            Business insights, sales analytics, and performance metrics
+            Real-time business insights from Azure backend services
           </p>
+          <div className="flex items-center text-xs text-gray-400 mt-1">
+            <ClockIcon className="h-4 w-4 mr-1" />
+            Last updated: {new Date(realTimeMetrics.lastUpdated).toLocaleTimeString()}
+          </div>
         </div>
         <div className="flex space-x-3">
-          <button className="btn-secondary flex items-center">
+          <button 
+            onClick={refreshAll}
+            className="btn-secondary flex items-center"
+            disabled={analytics.isLoading}
+          >
+            <ArrowPathIcon className={`h-5 w-5 mr-2 ${analytics.isLoading ? 'animate-spin' : ''}`} />
+            Refresh
+          </button>
+          <button 
+            onClick={() => handleExportReport('pdf')}
+            className="btn-secondary flex items-center"
+            disabled={isExporting}
+          >
             <ArrowDownTrayIcon className="h-5 w-5 mr-2" />
-            Export Report
+            {isExporting ? 'Exporting...' : 'Export PDF'}
           </button>
-          <button className="btn-secondary flex items-center">
-            <PrinterIcon className="h-5 w-5 mr-2" />
-            Print Report
+          <button 
+            onClick={() => handleExportReport('excel')}
+            className="btn-secondary flex items-center"
+            disabled={isExporting}
+          >
+            <DocumentChartBarIcon className="h-5 w-5 mr-2" />
+            Export Excel
           </button>
+        </div>
+      </div>
+
+      {/* Real-time Gold Rate Ticker */}
+      <div className="bg-gradient-to-r from-yellow-50 to-yellow-100 border border-yellow-200 rounded-lg p-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-6">
+            <div className="flex items-center">
+              <CurrencyDollarIcon className="h-6 w-6 text-yellow-600 mr-2" />
+              <span className="text-sm font-medium text-gray-700">Live Gold Rates</span>
+            </div>
+            <div className="flex items-center space-x-4">
+              <div className="text-center">
+                <div className="text-lg font-bold text-gray-900">
+                  ₹{realTimeMetrics.metrics.goldRate.toLocaleString()}
+                </div>
+                <div className="text-xs text-gray-500">22K Gold/g</div>
+              </div>
+              <div className={`flex items-center text-sm font-semibold ${
+                realTimeMetrics.metrics.goldChange >= 0 ? 'text-green-600' : 'text-red-600'
+              }`}>
+                {React.createElement(getGrowthIcon(realTimeMetrics.metrics.goldChange), { 
+                  className: "h-4 w-4 mr-1" 
+                })}
+                ₹{Math.abs(realTimeMetrics.metrics.goldChange)}
+              </div>
+            </div>
+          </div>
+          <div className="text-xs text-gray-500">
+            Updates every 30 seconds during business hours
+          </div>
         </div>
       </div>
 
@@ -232,45 +192,41 @@ export default function AnalyticsPage() {
             <select
               id="period"
               value={filters.period}
-              onChange={(e) => setFilters({...filters, period: e.target.value})}
+              onChange={(e) => setFilters({...filters, period: e.target.value as any})}
               className="select"
             >
               <option value="today">Today</option>
-              <option value="yesterday">Yesterday</option>
-              <option value="last_7_days">Last 7 Days</option>
-              <option value="last_30_days">Last 30 Days</option>
-              <option value="last_90_days">Last 90 Days</option>
-              <option value="this_month">This Month</option>
-              <option value="last_month">Last Month</option>
-              <option value="this_year">This Year</option>
-              <option value="custom">Custom Range</option>
+              <option value="week">Last 7 Days</option>
+              <option value="month">Last 30 Days</option>
+              <option value="quarter">Last 90 Days</option>
+              <option value="year">This Year</option>
             </select>
           </div>
 
-          {filters.period === 'custom' && (
+          {filters.date_from && (
             <>
               <div>
-                <label htmlFor="custom_from" className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="date_from" className="block text-sm font-medium text-gray-700 mb-2">
                   From Date
                 </label>
                 <input
                   type="date"
-                  id="custom_from"
-                  value={filters.custom_from}
-                  onChange={(e) => setFilters({...filters, custom_from: e.target.value})}
+                  id="date_from"
+                  value={filters.date_from}
+                  onChange={(e) => setFilters({...filters, date_from: e.target.value})}
                   className="input"
                 />
               </div>
 
               <div>
-                <label htmlFor="custom_to" className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="date_to" className="block text-sm font-medium text-gray-700 mb-2">
                   To Date
                 </label>
                 <input
                   type="date"
-                  id="custom_to"
-                  value={filters.custom_to}
-                  onChange={(e) => setFilters({...filters, custom_to: e.target.value})}
+                  id="date_to"
+                  value={filters.date_to}
+                  onChange={(e) => setFilters({...filters, date_to: e.target.value})}
                   className="input"
                 />
               </div>
@@ -278,14 +234,28 @@ export default function AnalyticsPage() {
           )}
 
           <div className="flex items-end">
-            <button className="btn-primary">
-              Apply Filter
+            <button 
+              onClick={handleApplyFilter}
+              className="btn-primary flex items-center"
+              disabled={analytics.isLoading}
+            >
+              {analytics.isLoading ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  Loading...
+                </>
+              ) : (
+                <>
+                  <FunnelIcon className="h-4 w-4 mr-2" />
+                  Apply Filter
+                </>
+              )}
             </button>
           </div>
         </div>
       </div>
 
-      {/* Key Metrics */}
+      {/* Real-time Key Metrics */}
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
         <div className="card">
           <div className="flex items-center">
@@ -299,11 +269,11 @@ export default function AnalyticsPage() {
                 </dt>
                 <dd className="flex items-baseline">
                   <div className="text-2xl font-semibold text-gray-900">
-                    {formatCurrency(analyticsStats.totalRevenue)}
+                    {formatCurrency(analytics.sales.data?.total_revenue || 0)}
                   </div>
-                  <div className={`ml-2 flex items-baseline text-sm font-semibold ${getGrowthColor(analyticsStats.revenueGrowth)}`}>
-                    {React.createElement(getGrowthIcon(analyticsStats.revenueGrowth), { className: "self-center flex-shrink-0 h-4 w-4" })}
-                    <span className="ml-1">{Math.abs(analyticsStats.revenueGrowth)}%</span>
+                  <div className={`ml-2 flex items-baseline text-sm font-semibold ${getGrowthColor(analytics.sales.data?.revenue_growth || 0)}`}>
+                    {React.createElement(getGrowthIcon(analytics.sales.data?.revenue_growth || 0), { className: "self-center flex-shrink-0 h-4 w-4" })}
+                    <span className="ml-1">{Math.abs(analytics.sales.data?.revenue_growth || 0).toFixed(1)}%</span>
                   </div>
                 </dd>
               </dl>
@@ -323,11 +293,11 @@ export default function AnalyticsPage() {
                 </dt>
                 <dd className="flex items-baseline">
                   <div className="text-2xl font-semibold text-gray-900">
-                    {analyticsStats.totalOrders}
+                    {analytics.sales.data?.total_orders || 0}
                   </div>
-                  <div className={`ml-2 flex items-baseline text-sm font-semibold ${getGrowthColor(analyticsStats.ordersGrowth)}`}>
-                    {React.createElement(getGrowthIcon(analyticsStats.ordersGrowth), { className: "self-center flex-shrink-0 h-4 w-4" })}
-                    <span className="ml-1">{Math.abs(analyticsStats.ordersGrowth)}%</span>
+                  <div className={`ml-2 flex items-baseline text-sm font-semibold ${getGrowthColor(analytics.sales.data?.orders_growth || 0)}`}>
+                    {React.createElement(getGrowthIcon(analytics.sales.data?.orders_growth || 0), { className: "self-center flex-shrink-0 h-4 w-4" })}
+                    <span className="ml-1">{Math.abs(analytics.sales.data?.orders_growth || 0).toFixed(1)}%</span>
                   </div>
                 </dd>
               </dl>
@@ -347,11 +317,10 @@ export default function AnalyticsPage() {
                 </dt>
                 <dd className="flex items-baseline">
                   <div className="text-2xl font-semibold text-gray-900">
-                    {formatCurrency(analyticsStats.averageOrderValue)}
+                    {formatCurrency(analytics.sales.data?.average_order_value || 0)}
                   </div>
-                  <div className={`ml-2 flex items-baseline text-sm font-semibold ${getGrowthColor(analyticsStats.aovGrowth)}`}>
-                    {React.createElement(getGrowthIcon(analyticsStats.aovGrowth), { className: "self-center flex-shrink-0 h-4 w-4" })}
-                    <span className="ml-1">{Math.abs(analyticsStats.aovGrowth)}%</span>
+                  <div className="text-xs text-gray-500 mt-1">
+                    Based on {analytics.sales.data?.total_orders || 0} orders
                   </div>
                 </dd>
               </dl>
@@ -362,20 +331,19 @@ export default function AnalyticsPage() {
         <div className="card">
           <div className="flex items-center">
             <div className="flex-shrink-0">
-              <UsersIcon className="h-6 w-6 text-orange-600" />
+              <CubeIcon className="h-6 w-6 text-orange-600" />
             </div>
             <div className="ml-5 w-0 flex-1">
               <dl>
                 <dt className="text-sm font-medium text-gray-500 truncate">
-                  Customer Retention
+                  Inventory Value
                 </dt>
                 <dd className="flex items-baseline">
                   <div className="text-2xl font-semibold text-gray-900">
-                    {analyticsStats.customerRetention}%
+                    {formatCurrency(realTimeMetrics.metrics.inventoryValue)}
                   </div>
-                  <div className={`ml-2 flex items-baseline text-sm font-semibold ${getGrowthColor(analyticsStats.retentionGrowth)}`}>
-                    {React.createElement(getGrowthIcon(analyticsStats.retentionGrowth), { className: "self-center flex-shrink-0 h-4 w-4" })}
-                    <span className="ml-1">{Math.abs(analyticsStats.retentionGrowth)}%</span>
+                  <div className="text-xs text-gray-500 mt-1">
+                    {analytics.inventory.data?.total_items || 0} items in stock
                   </div>
                 </dd>
               </dl>
@@ -383,6 +351,29 @@ export default function AnalyticsPage() {
           </div>
         </div>
       </div>
+
+      {/* Real-time Alerts */}
+      {(realTimeMetrics.metrics.lowStockItems > 0 || realTimeMetrics.metrics.pendingOrders > 5) && (
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+          <div className="flex items-center">
+            <ExclamationTriangleIcon className="h-6 w-6 text-yellow-600 mr-3" />
+            <div className="flex-1">
+              <h3 className="text-sm font-medium text-yellow-800">Business Alerts</h3>
+              <div className="text-sm text-yellow-700 mt-1 space-y-1">
+                {realTimeMetrics.metrics.lowStockItems > 0 && (
+                  <div>• {realTimeMetrics.metrics.lowStockItems} items are running low on stock</div>
+                )}
+                {realTimeMetrics.metrics.pendingOrders > 5 && (
+                  <div>• {realTimeMetrics.metrics.pendingOrders} orders are pending attention</div>
+                )}
+              </div>
+            </div>
+            <button className="btn-outline btn-sm">
+              View Details
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Charts Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -401,7 +392,7 @@ export default function AnalyticsPage() {
               <ChartBarIcon className="h-12 w-12 text-gray-400 mx-auto mb-2" />
               <p className="text-sm text-gray-500">Sales trend chart would be rendered here</p>
               <p className="text-xs text-gray-400 mt-1">
-                {salesData.length} data points available
+                {analytics.sales.data?.daily_sales?.length || 0} data points available
               </p>
             </div>
           </div>
@@ -418,7 +409,7 @@ export default function AnalyticsPage() {
             </button>
           </div>
           <div className="space-y-4">
-            {categoryPerformance.map((category, index) => (
+            {(analytics.sales.data?.category_performance || []).map((category, index) => (
               <div key={index} className="flex items-center justify-between">
                 <div className="flex-1">
                   <div className="flex items-center justify-between mb-1">
@@ -473,7 +464,7 @@ export default function AnalyticsPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
-                {metalTypeData.map((metal, index) => (
+                {(analytics.inventory.data?.metal_breakdown || []).map((metal, index) => (
                   <tr key={index}>
                     <td className="py-2 text-sm font-medium text-gray-900">{metal.metal}</td>
                     <td className="py-2 text-sm text-gray-500 text-right">{formatWeight(metal.weight)}</td>
@@ -497,7 +488,7 @@ export default function AnalyticsPage() {
             </button>
           </div>
           <div className="space-y-4">
-            {topCustomers.map((customer, index) => (
+            {(analytics.customers.data?.top_customers || []).map((customer, index) => (
               <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                 <div className="flex items-center">
                   <div className="flex-shrink-0 h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center">

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { 
   PlusIcon, 
   MagnifyingGlassIcon, 
@@ -17,53 +17,23 @@ import {
   CalendarIcon
 } from '@heroicons/react/24/outline';
 import { useAuth } from '@/lib/auth/AuthContext';
+import { 
+  useOrders, 
+  useOrderStats, 
+  useOrderActions
+} from '@/lib/hooks/useOrdersEnhanced';
+import OrderCreationWizard from '@/components/orders/OrderCreationWizard';
+import InvoiceGenerator from '@/components/invoices/InvoiceGenerator';
+import { 
+  OrderFilters,
+  ORDER_STATUSES,
+  ORDER_TYPES 
+} from '@/lib/api/services/orders';
 
-interface OrderItem {
-  id: number;
-  jewelry_item_id: number;
-  item_name: string;
-  quantity: number;
-  unit_price: number;
-  total_price: number;
-  customization_details?: string;
-}
-
-interface JewelryOrder {
-  id: number;
-  order_number: string;
-  customer_id: number;
-  customer_name: string;
-  customer_phone: string;
-  staff_id: number;
-  staff_name: string;
-  status: 'pending' | 'confirmed' | 'in_progress' | 'completed' | 'cancelled';
-  order_type: 'sale' | 'repair' | 'custom';
-  subtotal: number;
-  making_charges: number;
-  wastage_amount: number;
-  gst_amount: number;
-  total_amount: number;
-  special_instructions?: string;
-  estimated_completion?: string;
-  created_at: string;
-  updated_at: string;
-  items: OrderItem[];
-}
-
-interface OrderFilters {
-  search: string;
-  status: string;
-  order_type: string;
-  date_from: string;
-  date_to: string;
-  staff_id: string;
-}
+// Interfaces are now imported from the API service
 
 export default function OrdersPage() {
   const { user } = useAuth();
-  const [orders, setOrders] = useState<JewelryOrder[]>([]);
-  const [filteredOrders, setFilteredOrders] = useState<JewelryOrder[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [filters, setFilters] = useState<OrderFilters>({
     search: '',
     status: '',
@@ -73,210 +43,34 @@ export default function OrdersPage() {
     staff_id: ''
   });
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [selectedOrder, setSelectedOrder] = useState<JewelryOrder | null>(null);
-  const [orderStats, setOrderStats] = useState({
-    totalOrders: 0,
-    totalRevenue: 0,
-    pendingOrders: 0,
-    completedToday: 0
-  });
+  const [selectedOrder, setSelectedOrder] = useState<any>(null);
+  const [showInvoiceModal, setShowInvoiceModal] = useState(false);
+  const [orderForInvoice, setOrderForInvoice] = useState<any>(null);
+  
+  // Real Azure API data
+  const { data: orders = [], isLoading, error, refetch } = useOrders(filters);
+  const { data: orderStats, isLoading: statsLoading } = useOrderStats();
+  const { updateStatus, generateInvoice, isLoading: actionLoading } = useOrderActions();
 
-  useEffect(() => {
-    fetchOrdersData();
-  }, []);
-
-  useEffect(() => {
-    applyFilters();
-  }, [orders, filters]);
-
-  const fetchOrdersData = async () => {
-    try {
-      // In a real implementation, this would call the orders API
-      // For now, using mock data
-      setTimeout(() => {
-        const mockOrders: JewelryOrder[] = [
-          {
-            id: 1,
-            order_number: 'ORD241223001',
-            customer_id: 1,
-            customer_name: 'Priya Sharma',
-            customer_phone: '+91 9876543210',
-            staff_id: 1,
-            staff_name: 'Rajesh Kumar',
-            status: 'confirmed',
-            order_type: 'sale',
-            subtotal: 280000,
-            making_charges: 40000,
-            wastage_amount: 5000,
-            gst_amount: 9750,
-            total_amount: 334750,
-            special_instructions: 'Customer prefers traditional design',
-            estimated_completion: '2024-01-30T10:00:00Z',
-            created_at: '2024-01-23T10:30:00Z',
-            updated_at: '2024-01-23T14:45:00Z',
-            items: [
-              {
-                id: 1,
-                jewelry_item_id: 1,
-                item_name: '22K Gold Necklace Set',
-                quantity: 1,
-                unit_price: 320000,
-                total_price: 320000
-              }
-            ]
-          },
-          {
-            id: 2,
-            order_number: 'ORD241223002',
-            customer_id: 2,
-            customer_name: 'Anita Patel',
-            customer_phone: '+91 9876543211',
-            staff_id: 1,
-            staff_name: 'Rajesh Kumar',
-            status: 'pending',
-            order_type: 'custom',
-            subtotal: 150000,
-            making_charges: 25000,
-            wastage_amount: 3000,
-            gst_amount: 5340,
-            total_amount: 183340,
-            special_instructions: 'Custom design with customer provided stones',
-            estimated_completion: '2024-02-15T10:00:00Z',
-            created_at: '2024-01-23T11:15:00Z',
-            updated_at: '2024-01-23T11:15:00Z',
-            items: [
-              {
-                id: 2,
-                jewelry_item_id: 2,
-                item_name: 'Custom Gold Bracelet',
-                quantity: 1,
-                unit_price: 175000,
-                total_price: 175000,
-                customization_details: 'Customer stones to be set'
-              }
-            ]
-          },
-          {
-            id: 3,
-            order_number: 'ORD241223003',
-            customer_id: 3,
-            customer_name: 'Vikram Singh',
-            customer_phone: '+91 9876543212',
-            staff_id: 1,
-            staff_name: 'Rajesh Kumar',
-            status: 'completed',
-            order_type: 'repair',
-            subtotal: 5000,
-            making_charges: 2000,
-            wastage_amount: 0,
-            gst_amount: 210,
-            total_amount: 7210,
-            special_instructions: 'Chain repair - broken link',
-            estimated_completion: '2024-01-25T10:00:00Z',
-            created_at: '2024-01-22T09:00:00Z',
-            updated_at: '2024-01-25T16:30:00Z',
-            items: [
-              {
-                id: 3,
-                jewelry_item_id: 0,
-                item_name: 'Chain Repair Service',
-                quantity: 1,
-                unit_price: 7000,
-                total_price: 7000
-              }
-            ]
-          },
-          {
-            id: 4,
-            order_number: 'ORD241223004',
-            customer_id: 4,
-            customer_name: 'Meera Reddy',
-            customer_phone: '+91 9876543213',
-            staff_id: 2,
-            staff_name: 'Sunita Devi',
-            status: 'in_progress',
-            order_type: 'sale',
-            subtotal: 95000,
-            making_charges: 15000,
-            wastage_amount: 2000,
-            gst_amount: 3360,
-            total_amount: 115360,
-            estimated_completion: '2024-01-28T10:00:00Z',
-            created_at: '2024-01-23T14:20:00Z',
-            updated_at: '2024-01-24T10:15:00Z',
-            items: [
-              {
-                id: 4,
-                jewelry_item_id: 2,
-                item_name: '18K Gold Diamond Earrings',
-                quantity: 1,
-                unit_price: 110000,
-                total_price: 110000
-              }
-            ]
-          }
-        ];
-
-        setOrders(mockOrders);
-        
-        // Calculate stats
-        const today = new Date().toDateString();
-        const stats = {
-          totalOrders: mockOrders.length,
-          totalRevenue: mockOrders.reduce((sum, order) => sum + order.total_amount, 0),
-          pendingOrders: mockOrders.filter(order => order.status === 'pending').length,
-          completedToday: mockOrders.filter(order => 
-            order.status === 'completed' && 
-            new Date(order.updated_at).toDateString() === today
-          ).length
-        };
-        setOrderStats(stats);
-        
-        setIsLoading(false);
-      }, 1000);
-    } catch (error) {
-      console.error('Failed to fetch orders data:', error);
-      setIsLoading(false);
-    }
-  };
-
-  const applyFilters = () => {
-    let filtered = [...orders];
-
+  // Handle loading and error states
+  if (error) {
+    console.error('Orders API Error:', error);
+  }
+  
+  // Filter orders client-side for better UX (server-side filtering is also available)
+  const filteredOrders = orders.filter(order => {
     if (filters.search) {
-      filtered = filtered.filter(order => 
-        order.order_number.toLowerCase().includes(filters.search.toLowerCase()) ||
-        order.customer_name.toLowerCase().includes(filters.search.toLowerCase()) ||
-        order.customer_phone.includes(filters.search)
-      );
+      const searchLower = filters.search.toLowerCase();
+      if (!(
+        order.order_number?.toLowerCase().includes(searchLower) ||
+        order.customer_name?.toLowerCase().includes(searchLower) ||
+        order.customer_phone?.includes(filters.search)
+      )) {
+        return false;
+      }
     }
-
-    if (filters.status) {
-      filtered = filtered.filter(order => order.status === filters.status);
-    }
-
-    if (filters.order_type) {
-      filtered = filtered.filter(order => order.order_type === filters.order_type);
-    }
-
-    if (filters.date_from) {
-      filtered = filtered.filter(order => 
-        new Date(order.created_at) >= new Date(filters.date_from)
-      );
-    }
-
-    if (filters.date_to) {
-      filtered = filtered.filter(order => 
-        new Date(order.created_at) <= new Date(filters.date_to)
-      );
-    }
-
-    if (filters.staff_id) {
-      filtered = filtered.filter(order => order.staff_id === parseInt(filters.staff_id));
-    }
-
-    setFilteredOrders(filtered);
-  };
+    return true;
+  });
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-IN', {
@@ -307,22 +101,31 @@ export default function OrdersPage() {
     }
   };
 
-  const updateOrderStatus = async (orderId: number, newStatus: string) => {
-    try {
-      // In a real implementation, this would call the API
-      setOrders(prevOrders =>
-        prevOrders.map(order =>
-          order.id === orderId
-            ? { ...order, status: newStatus as any, updated_at: new Date().toISOString() }
-            : order
-        )
-      );
-    } catch (error) {
-      console.error('Failed to update order status:', error);
-    }
+  const handleStatusUpdate = (orderId: number, newStatus: string) => {
+    updateStatus({ id: orderId, status: newStatus });
+  };
+  
+  const handleInvoiceDownload = (orderId: number) => {
+    generateInvoice(orderId);
   };
 
-  if (isLoading) {
+  const handleShowInvoice = (order: any) => {
+    setOrderForInvoice(order);
+    setShowInvoiceModal(true);
+  };
+  
+  const handleRefresh = () => {
+    refetch();
+  };
+
+  const handleOrderCreated = (newOrder: any) => {
+    // Order creation success is handled by the useCreateOrder hook
+    // which will automatically update the orders list and stats
+    setShowCreateModal(false);
+    handleRefresh(); // Extra refresh to ensure UI is updated
+  };
+
+  if (isLoading || statsLoading) {
     return (
       <div className="space-y-6">
         <div className="flex items-center justify-between">
@@ -332,9 +135,11 @@ export default function OrdersPage() {
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
           {[...Array(4)].map((_, i) => (
             <div key={i} className="card">
-              <div className="skeleton h-6 w-24 mb-4"></div>
-              <div className="skeleton h-8 w-32 mb-2"></div>
-              <div className="skeleton h-4 w-20"></div>
+              <div className="animate-pulse">
+                <div className="h-6 bg-gray-200 rounded w-24 mb-4"></div>
+                <div className="h-8 bg-gray-200 rounded w-32 mb-2"></div>
+                <div className="h-4 bg-gray-200 rounded w-20"></div>
+              </div>
             </div>
           ))}
         </div>
@@ -356,13 +161,18 @@ export default function OrdersPage() {
           <button
             onClick={() => setShowCreateModal(true)}
             className="btn-primary flex items-center"
+            disabled={actionLoading}
           >
             <PlusIcon className="h-5 w-5 mr-2" />
             Create Order
           </button>
-          <button className="btn-secondary flex items-center">
+          <button 
+            onClick={handleRefresh}
+            className="btn-secondary flex items-center"
+            disabled={isLoading}
+          >
             <DocumentTextIcon className="h-5 w-5 mr-2" />
-            Bulk Export
+            {isLoading ? 'Refreshing...' : 'Refresh'}
           </button>
         </div>
       </div>
@@ -376,7 +186,7 @@ export default function OrdersPage() {
             </div>
             <div className="ml-5">
               <div className="text-sm font-medium text-gray-500">Total Orders</div>
-              <div className="text-2xl font-bold text-gray-900">{orderStats.totalOrders}</div>
+              <div className="text-2xl font-bold text-gray-900">{orderStats?.total_orders || 0}</div>
             </div>
           </div>
         </div>
@@ -388,7 +198,7 @@ export default function OrdersPage() {
             </div>
             <div className="ml-5">
               <div className="text-sm font-medium text-gray-500">Total Revenue</div>
-              <div className="text-2xl font-bold text-gray-900">{formatCurrency(orderStats.totalRevenue)}</div>
+              <div className="text-2xl font-bold text-gray-900">{formatCurrency(orderStats?.total_revenue || 0)}</div>
             </div>
           </div>
         </div>
@@ -400,7 +210,7 @@ export default function OrdersPage() {
             </div>
             <div className="ml-5">
               <div className="text-sm font-medium text-gray-500">Pending Orders</div>
-              <div className="text-2xl font-bold text-gray-900">{orderStats.pendingOrders}</div>
+              <div className="text-2xl font-bold text-gray-900">{orderStats?.pending_orders || 0}</div>
             </div>
           </div>
         </div>
@@ -412,7 +222,7 @@ export default function OrdersPage() {
             </div>
             <div className="ml-5">
               <div className="text-sm font-medium text-gray-500">Completed Today</div>
-              <div className="text-2xl font-bold text-gray-900">{orderStats.completedToday}</div>
+              <div className="text-2xl font-bold text-gray-900">{orderStats?.completed_today || 0}</div>
             </div>
           </div>
         </div>
@@ -451,11 +261,11 @@ export default function OrdersPage() {
               className="select"
             >
               <option value="">All Status</option>
-              <option value="pending">Pending</option>
-              <option value="confirmed">Confirmed</option>
-              <option value="in_progress">In Progress</option>
-              <option value="completed">Completed</option>
-              <option value="cancelled">Cancelled</option>
+              <option value={ORDER_STATUSES.PENDING}>Pending</option>
+              <option value={ORDER_STATUSES.CONFIRMED}>Confirmed</option>
+              <option value={ORDER_STATUSES.IN_PROGRESS}>In Progress</option>
+              <option value={ORDER_STATUSES.COMPLETED}>Completed</option>
+              <option value={ORDER_STATUSES.CANCELLED}>Cancelled</option>
             </select>
           </div>
 
@@ -470,9 +280,9 @@ export default function OrdersPage() {
               className="select"
             >
               <option value="">All Types</option>
-              <option value="sale">Sale</option>
-              <option value="repair">Repair</option>
-              <option value="custom">Custom</option>
+              <option value={ORDER_TYPES.SALE}>Sale</option>
+              <option value={ORDER_TYPES.REPAIR}>Repair</option>
+              <option value={ORDER_TYPES.CUSTOM}>Custom</option>
             </select>
           </div>
 
@@ -546,7 +356,7 @@ export default function OrdersPage() {
                     <div>
                       <div className="text-sm font-medium text-gray-900">{order.order_number}</div>
                       <div className="text-sm text-gray-500">
-                        {order.items.length} item{order.items.length !== 1 ? 's' : ''}
+                        {order.items?.length || 0} item{(order.items?.length || 0) !== 1 ? 's' : ''}
                       </div>
                       {order.special_instructions && (
                         <div className="text-xs text-gray-400 mt-1">
@@ -562,28 +372,28 @@ export default function OrdersPage() {
                       <UserIcon className="h-8 w-8 text-gray-400 mr-3" />
                       <div>
                         <div className="text-sm font-medium text-gray-900">{order.customer_name}</div>
-                        <div className="text-sm text-gray-500">{order.customer_phone}</div>
+                        <div className="text-sm text-gray-500">{order.customer_phone || 'No phone'}</div>
                       </div>
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="space-y-1">
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getOrderTypeColor(order.order_type)}`}>
-                        {order.order_type.charAt(0).toUpperCase() + order.order_type.slice(1)}
+                        {order.order_type?.charAt(0).toUpperCase() + order.order_type?.slice(1)}
                       </span>
                       <br />
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(order.status)}`}>
-                        {order.status.replace('_', ' ').charAt(0).toUpperCase() + order.status.replace('_', ' ').slice(1)}
+                        {order.status?.replace('_', ' ').charAt(0).toUpperCase() + order.status?.replace('_', ' ').slice(1)}
                       </span>
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900 font-medium">{formatCurrency(order.total_amount)}</div>
+                    <div className="text-sm text-gray-900 font-medium">{formatCurrency(order.total_amount || 0)}</div>
                     <div className="text-sm text-gray-500">
-                      Base: {formatCurrency(order.subtotal)}
+                      Base: {formatCurrency(order.subtotal || 0)}
                     </div>
                     <div className="text-sm text-gray-500">
-                      GST: {formatCurrency(order.gst_amount)}
+                      GST: {formatCurrency(order.gst_amount || 0)}
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
@@ -596,7 +406,7 @@ export default function OrdersPage() {
                       </div>
                     )}
                     <div className="text-sm text-gray-500">
-                      Staff: {order.staff_name}
+                      Staff: {order.staff_name || 'Unassigned'}
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
@@ -617,37 +427,41 @@ export default function OrdersPage() {
                           <PencilIcon className="h-5 w-5" />
                         </button>
                         <button
-                          onClick={() => console.log('Print invoice', order.id)}
+                          onClick={() => handleShowInvoice(order)}
                           className="text-purple-600 hover:text-purple-900"
-                          title="Print Invoice"
+                          title="Generate Invoice"
+                          disabled={actionLoading}
                         >
                           <PrinterIcon className="h-5 w-5" />
                         </button>
                       </div>
                       
                       {/* Quick Status Updates */}
-                      {order.status === 'pending' && (
+                      {order.status === ORDER_STATUSES.PENDING && (
                         <button
-                          onClick={() => updateOrderStatus(order.id, 'confirmed')}
+                          onClick={() => handleStatusUpdate(order.id, ORDER_STATUSES.CONFIRMED)}
                           className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full hover:bg-blue-200"
+                          disabled={actionLoading}
                         >
                           Confirm
                         </button>
                       )}
                       
-                      {order.status === 'confirmed' && (
+                      {order.status === ORDER_STATUSES.CONFIRMED && (
                         <button
-                          onClick={() => updateOrderStatus(order.id, 'in_progress')}
+                          onClick={() => handleStatusUpdate(order.id, ORDER_STATUSES.IN_PROGRESS)}
                           className="text-xs bg-purple-100 text-purple-800 px-2 py-1 rounded-full hover:bg-purple-200"
+                          disabled={actionLoading}
                         >
                           Start Work
                         </button>
                       )}
                       
-                      {order.status === 'in_progress' && (
+                      {order.status === ORDER_STATUSES.IN_PROGRESS && (
                         <button
-                          onClick={() => updateOrderStatus(order.id, 'completed')}
+                          onClick={() => handleStatusUpdate(order.id, ORDER_STATUSES.COMPLETED)}
                           className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full hover:bg-green-200"
+                          disabled={actionLoading}
                         >
                           Complete
                         </button>
@@ -662,9 +476,45 @@ export default function OrdersPage() {
       </div>
 
       {/* Results Summary */}
-      <div className="text-sm text-gray-500 text-center">
-        Showing {filteredOrders.length} of {orders.length} orders
+      <div className="flex justify-between items-center text-sm text-gray-500">
+        <div>
+          Showing {filteredOrders.length} of {orders.length} orders
+        </div>
+        {error && (
+          <div className="text-red-600 flex items-center">
+            <XCircleIcon className="h-4 w-4 mr-1" />
+            Failed to load from Azure API - showing cached data
+          </div>
+        )}
+        <div className="flex items-center space-x-2">
+          <button
+            onClick={handleRefresh}
+            className="text-blue-600 hover:text-blue-800"
+            disabled={isLoading}
+          >
+            {isLoading ? 'Refreshing...' : 'Refresh Data'}
+          </button>
+        </div>
       </div>
+
+      {/* Order Creation Wizard */}
+      <OrderCreationWizard
+        isOpen={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        onSuccess={handleOrderCreated}
+      />
+
+      {/* Invoice Generator */}
+      {orderForInvoice && (
+        <InvoiceGenerator
+          order={orderForInvoice}
+          isOpen={showInvoiceModal}
+          onClose={() => {
+            setShowInvoiceModal(false);
+            setOrderForInvoice(null);
+          }}
+        />
+      )}
 
       {/* Order Details Modal Placeholder */}
       {selectedOrder && (
@@ -687,33 +537,33 @@ export default function OrdersPage() {
                 <div>
                   <h4 className="font-medium text-gray-900 mb-2">Customer Information</h4>
                   <p className="text-sm text-gray-600">Name: {selectedOrder.customer_name}</p>
-                  <p className="text-sm text-gray-600">Phone: {selectedOrder.customer_phone}</p>
+                  <p className="text-sm text-gray-600">Phone: {selectedOrder.customer_phone || 'No phone'}</p>
                 </div>
                 
                 <div>
                   <h4 className="font-medium text-gray-900 mb-2">Order Information</h4>
                   <p className="text-sm text-gray-600">Type: {selectedOrder.order_type}</p>
                   <p className="text-sm text-gray-600">Status: {selectedOrder.status}</p>
-                  <p className="text-sm text-gray-600">Staff: {selectedOrder.staff_name}</p>
+                  <p className="text-sm text-gray-600">Staff: {selectedOrder.staff_name || 'Unassigned'}</p>
                 </div>
               </div>
               
               <div className="mt-6">
                 <h4 className="font-medium text-gray-900 mb-2">Order Items</h4>
                 <div className="space-y-2">
-                  {selectedOrder.items.map((item, index) => (
+                  {selectedOrder.items?.map((item: any, index: number) => (
                     <div key={index} className="flex justify-between items-center p-2 bg-gray-50 rounded">
                       <span className="text-sm">{item.item_name} (Qty: {item.quantity})</span>
-                      <span className="text-sm font-medium">{formatCurrency(item.total_price)}</span>
+                      <span className="text-sm font-medium">{formatCurrency(item.total_price || 0)}</span>
                     </div>
-                  ))}
+                  )) || <div className="text-sm text-gray-500">No items found</div>}
                 </div>
               </div>
               
               <div className="mt-6 border-t pt-4">
                 <div className="flex justify-between items-center">
                   <span className="text-lg font-medium">Total Amount:</span>
-                  <span className="text-lg font-bold text-green-600">{formatCurrency(selectedOrder.total_amount)}</span>
+                  <span className="text-lg font-bold text-green-600">{formatCurrency(selectedOrder.total_amount || 0)}</span>
                 </div>
               </div>
               
@@ -724,8 +574,12 @@ export default function OrdersPage() {
                 >
                   Close
                 </button>
-                <button className="btn-primary">
-                  Print Invoice
+                <button 
+                  className="btn-primary"
+                  onClick={() => handleInvoiceDownload(selectedOrder.id)}
+                  disabled={actionLoading}
+                >
+                  {actionLoading ? 'Generating...' : 'Download Invoice'}
                 </button>
               </div>
             </div>

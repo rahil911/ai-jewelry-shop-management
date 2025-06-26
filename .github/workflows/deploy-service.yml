@@ -1,0 +1,190 @@
+name: Deploy Service
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'services/**'
+      - 'shared/**'
+
+env:
+  REGISTRY: jewelryshopacr01280.azurecr.io
+  
+jobs:
+  deploy-changed-service:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Setup Node.js 18
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+          
+      - name: Build Shared Library (CI/CD Environment)
+        run: |
+          echo "🔨 Building shared library in CI/CD..."
+          cd shared
+          # Use npm ci for faster, reliable installs in CI
+          npm ci --production=false
+          npm run build
+          echo "✅ Shared library built successfully"
+          
+      - name: Detect Changed Service
+        id: detect
+        run: |
+          echo "🔍 Detecting which service changed..."
+          
+          # Check which service directory has changes
+          if git diff --name-only HEAD~1 HEAD | grep -q "services/order-management"; then
+            echo "service=order-management" >> $GITHUB_OUTPUT
+            echo "port=3004" >> $GITHUB_OUTPUT
+          elif git diff --name-only HEAD~1 HEAD | grep -q "services/user-management"; then
+            echo "service=user-management" >> $GITHUB_OUTPUT  
+            echo "port=3001" >> $GITHUB_OUTPUT
+          elif git diff --name-only HEAD~1 HEAD | grep -q "services/pricing-service"; then
+            echo "service=pricing-service" >> $GITHUB_OUTPUT
+            echo "port=3003" >> $GITHUB_OUTPUT
+          elif git diff --name-only HEAD~1 HEAD | grep -q "services/inventory-management"; then
+            echo "service=inventory-management" >> $GITHUB_OUTPUT
+            echo "port=3002" >> $GITHUB_OUTPUT
+          else
+            echo "service=none" >> $GITHUB_OUTPUT
+          fi
+          
+      - name: Build and Deploy Service
+        if: steps.detect.outputs.service != 'none'
+        run: |
+          SERVICE="${{ steps.detect.outputs.service }}"
+          PORT="${{ steps.detect.outputs.port }}"
+          
+          echo "🚀 Deploying $SERVICE on port $PORT"
+          
+          cd services/$SERVICE
+          
+          # Install service dependencies
+          npm ci --production=false
+          
+          # Copy built shared library into service for Docker
+          rm -rf shared-dist
+          mkdir -p shared-dist
+          cp -r ../../shared/dist/* shared-dist/
+          
+          # Login to Azure Container Registry
+          az acr login --name jewelryshopacr01280
+          
+          # Build Docker image
+          docker build -t $REGISTRY/$SERVICE:${{ github.sha }} .
+          docker build -t $REGISTRY/$SERVICE:latest .
+          
+          # Push to registry
+          docker push $REGISTRY/$SERVICE:${{ github.sha }}
+          docker push $REGISTRY/$SERVICE:latest
+          
+          echo "✅ $SERVICE image built and pushed"
+          
+      - name: Deploy to Azure VM
+        if: steps.detect.outputs.service != 'none'
+        run: |
+          SERVICE="${{ steps.detect.outputs.service }}"
+          PORT="${{ steps.detect.outputs.port }}"
+          
+          echo "📡 Deploying $SERVICE to Azure VM..."
+          
+          # Create SSH key for deployment
+          echo "${{ secrets.AZURE_VM_SSH_KEY }}" > /tmp/ssh_key
+          chmod 600 /tmp/ssh_key
+          
+          # Deploy to VM
+          ssh -i /tmp/ssh_key -o StrictHostKeyChecking=no azureuser@4.236.132.147 << EOF
+            echo "🔄 Updating $SERVICE on Azure VM..."
+            
+            # Login to container registry
+            az acr login --name jewelryshopacr01280
+            
+            # Pull latest image
+            docker pull $REGISTRY/$SERVICE:latest
+            
+            # Stop old container
+            docker stop $SERVICE 2>/dev/null || true
+            docker rm $SERVICE 2>/dev/null || true
+            
+            # Start new container
+            docker run -d --name $SERVICE \\
+              --restart unless-stopped \\
+              -p $PORT:$PORT \\
+              -e NODE_ENV=production \\
+              -e PORT=$PORT \\
+              -e DATABASE_URL="postgresql://jewelry_admin:jewelry_secure_2024@localhost:5432/jewelry_shop" \\
+              -e REDIS_URL="redis://localhost:6379" \\
+              -e JWT_SECRET="jewelry-shop-jwt-secret-2024" \\
+              $REGISTRY/$SERVICE:latest
+            
+            # Wait for service to start
+            sleep 15
+            
+            # Health check
+            if curl -f http://localhost:$PORT/health; then
+              echo "✅ $SERVICE deployed successfully!"
+            else
+              echo "❌ $SERVICE deployment failed"
+              docker logs $SERVICE --tail 20
+              exit 1
+            fi
+          EOF
+          
+          # Cleanup
+          rm -f /tmp/ssh_key
+          
+      - name: Run Comprehensive Tests
+        if: steps.detect.outputs.service == 'order-management'
+        run: |
+          echo "🧪 Running comprehensive tests for Order Management v2.0..."
+          
+          # Wait for service to be fully ready
+          sleep 30
+          
+          # Run the comprehensive test script on the deployed service
+          ssh -i /tmp/ssh_key -o StrictHostKeyChecking=no azureuser@4.236.132.147 << 'EOF'
+            echo "🔍 Testing Order Management v2.0 endpoints..."
+            
+            # Test health
+            curl -f http://localhost:3004/health || exit 1
+            
+            # Test basic orders endpoint
+            curl -s http://localhost:3004/api/orders | grep -q "error" || exit 1
+            
+            # Test new v2.0 endpoints (should return auth required, not 404)
+            curl -s http://localhost:3004/api/repairs | grep -q "error" || exit 1
+            curl -s http://localhost:3004/api/returns | grep -q "error" || exit 1  
+            curl -s http://localhost:3004/api/notifications | grep -q "error" || exit 1
+            
+            echo "✅ All Order Management v2.0 endpoints are responding correctly!"
+          EOF
+          
+      - name: Deployment Summary
+        if: steps.detect.outputs.service != 'none'
+        run: |
+          SERVICE="${{ steps.detect.outputs.service }}"
+          PORT="${{ steps.detect.outputs.port }}"
+          
+          echo "🎉 DEPLOYMENT COMPLETE!"
+          echo "====================="
+          echo "Service: $SERVICE v2.0"
+          echo "Image: $REGISTRY/$SERVICE:${{ github.sha }}"
+          echo "URL: http://4.236.132.147:$PORT"
+          echo "Health: http://4.236.132.147:$PORT/health"
+          echo ""
+          if [ "$SERVICE" = "order-management" ]; then
+            echo "New v2.0 Features Available:"
+            echo "• http://4.236.132.147:$PORT/api/repairs"
+            echo "• http://4.236.132.147:$PORT/api/returns"
+            echo "• http://4.236.132.147:$PORT/api/notifications"
+          fi
