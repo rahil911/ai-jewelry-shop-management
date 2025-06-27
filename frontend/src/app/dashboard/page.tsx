@@ -11,6 +11,9 @@ import {
 } from '@heroicons/react/24/outline';
 import { useAuth } from '@/lib/hooks/useAuth';
 import { useCurrentGoldRates } from '@/lib/hooks/usePricing';
+import { useInventoryStats } from '@/lib/hooks/useInventory';
+import { useOrders } from '@/lib/hooks/useOrders';
+import { useTokenRefresh } from '@/lib/hooks/useTokenRefresh';
 
 interface DashboardStats {
   totalRevenue: number;
@@ -27,53 +30,36 @@ export default function DashboardPage() {
   const { user } = useAuth();
   const { data: goldRates, isLoading: goldRatesLoading } = useCurrentGoldRates();
   
-  const [stats, setStats] = useState<DashboardStats>({
-    totalRevenue: 0,
-    totalOrders: 0,
-    totalCustomers: 0,
-    inventoryValue: 0,
-    goldRate: 0,
-    goldRateChange: 0,
-    silverRate: 0,
-    silverRateChange: 0,
+  // Setup automatic token refresh
+  useTokenRefresh({
+    enabled: true,
+    onTokenRefreshed: (newToken) => {
+      console.log('✅ Dashboard: Token refreshed automatically');
+    },
+    onRefreshError: (error) => {
+      console.error('❌ Dashboard: Token refresh error:', error);
+    }
   });
-  const [isLoading, setIsLoading] = useState(true);
+  
+  // Get real inventory data from Azure backend
+  const { data: inventoryStats, isLoading: inventoryLoading } = useInventoryStats();
 
-  useEffect(() => {
-    fetchDashboardData();
-  }, []);
+  // Get real orders data from Azure backend  
+  const { data: ordersData, isLoading: ordersLoading } = useOrders();
 
-  useEffect(() => {
-    // Update gold rate in stats when live data comes in
-    if (goldRates) {
-      setStats(prev => ({
-        ...prev,
-        goldRate: goldRates['22K'],
-        goldRateChange: 2.5, // TODO: Calculate from historical data
-      }));
-    }
-  }, [goldRates]);
-
-  const fetchDashboardData = async () => {
-    try {
-      // Mock data for other stats - TODO: Connect to analytics API
-      setTimeout(() => {
-        setStats(prev => ({
-          ...prev,
-          totalRevenue: 125000,
-          totalOrders: 45,
-          totalCustomers: 128,
-          inventoryValue: 850000,
-          silverRate: 84,
-          silverRateChange: -1.2,
-        }));
-        setIsLoading(false);
-      }, 1000);
-    } catch (error) {
-      console.error('Failed to fetch dashboard data:', error);
-      setIsLoading(false);
-    }
+  // Calculate real dashboard stats from actual data
+  const stats = {
+    totalRevenue: ordersData?.reduce((total: number, order: any) => total + (order.total_amount || 0), 0) || 0,
+    totalOrders: ordersData?.length || 0,
+    totalCustomers: 50, // This would come from customer service
+    inventoryValue: inventoryStats?.total_value || 0,
+    goldRate: goldRates?.['22K'] || 0,
+    goldRateChange: 2.5, // TODO: Calculate from historical data
+    silverRate: 84,
+    silverRateChange: -1.2,
   };
+
+  const isLoading = goldRatesLoading || inventoryLoading || ordersLoading;
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-IN', {

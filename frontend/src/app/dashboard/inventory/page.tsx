@@ -17,8 +17,10 @@ import { useAuth } from '@/lib/hooks/useAuth';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { inventoryService, type JewelryItem, type InventoryStats, type InventoryFilters as ApiInventoryFilters } from '@/lib/api/services/inventory';
 import { useCurrentGoldRates } from '@/lib/hooks/usePricing';
+import { useTokenRefresh } from '@/lib/hooks/useTokenRefresh';
 import { toast } from 'react-hot-toast';
 import AddItemModal from '@/components/inventory/AddItemModal';
+import EditItemModal from '@/components/inventory/EditItemModal';
 
 // Extending the API type for local UI state
 interface LocalJewelryItem extends JewelryItem {
@@ -38,6 +40,19 @@ export default function InventoryPage() {
   const queryClient = useQueryClient();
   const { data: goldRates } = useCurrentGoldRates();
   
+  // Setup automatic token refresh for inventory operations
+  useTokenRefresh({
+    enabled: true,
+    onTokenRefreshed: (newToken) => {
+      console.log('✅ Inventory: Token refreshed automatically');
+      // Refresh inventory data after token refresh
+      queryClient.invalidateQueries({ queryKey: ['inventory'] });
+    },
+    onRefreshError: (error) => {
+      console.error('❌ Inventory: Token refresh error:', error);
+    }
+  });
+  
   const [filters, setFilters] = useState<InventoryFilters>({
     search: '',
     category: '',
@@ -46,6 +61,7 @@ export default function InventoryPage() {
     stock_status: ''
   });
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
   const [selectedItem, setSelectedItem] = useState<LocalJewelryItem | null>(null);
   const [page, setPage] = useState(1);
   const limit = 20;
@@ -149,6 +165,17 @@ export default function InventoryPage() {
       quantity: newQuantity,
       reason: 'Quick adjustment from inventory page'
     });
+  };
+
+  const handleEditItem = (item: LocalJewelryItem) => {
+    setSelectedItem(item);
+    setShowEditModal(true);
+  };
+
+  const handleViewItem = (item: LocalJewelryItem) => {
+    setSelectedItem(item);
+    // For now just edit, later we can add a view-only modal
+    setShowEditModal(true);
   };
 
   const formatCurrency = (amount: number) => {
@@ -497,14 +524,14 @@ export default function InventoryPage() {
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                     <div className="flex space-x-2">
                       <button
-                        onClick={() => setSelectedItem(item)}
+                        onClick={() => handleViewItem(item)}
                         className="text-blue-600 hover:text-blue-900"
                         title="View Details"
                       >
                         <EyeIcon className="h-5 w-5" />
                       </button>
                       <button
-                        onClick={() => setSelectedItem(item)}
+                        onClick={() => handleEditItem(item)}
                         className="text-yellow-600 hover:text-yellow-900"
                         title="Edit Item"
                       >
@@ -625,6 +652,17 @@ export default function InventoryPage() {
         isOpen={showAddModal}
         onClose={() => setShowAddModal(false)}
         onSuccess={() => refetch()}
+      />
+
+      {/* Edit Item Modal */}
+      <EditItemModal
+        isOpen={showEditModal}
+        onClose={() => {
+          setShowEditModal(false);
+          setSelectedItem(null);
+        }}
+        onSuccess={() => refetch()}
+        item={selectedItem}
       />
     </div>
   );
